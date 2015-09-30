@@ -5,20 +5,20 @@ import cgi, cgitb
 from socket import *
 
 def clientInstance(address, machine):
-	msg = "REQUEST "
-	cmds_list = []	
-	for key in commands:
-		if form.getvalue("m"+str(machine)+"-"+commands[key]):
-			cmds_list.append(key)			
-			msg += str(key)+" "
-
+	cmds_list = []
+	responses = []
 	serverPort = 12000
 	clientSocket = socket(socket.AF_INET,socket.SOCK_DGRAM)
-	clientSocket.sendto(msg,(address, serverPort))
-
-	resMessage = clientSocket.recvfrom(2048)[0]
-	resMessage = resMessage[9:]
-	responses = resMessage.split("//\n")
+	
+	# for each marked command, make a request
+	for key in commands:
+		if form.getvalue("m"+str(machine)+"-"+commands[key]):
+			clientSocket.sendto("REQUEST " + str(key) + " ",(address, serverPort)) # TODO add PARAMS
+			
+			# Protocol: RESPONSE X RESULT
+			resMessage = clientSocket.recvfrom(2048)[0]
+			cmds_list.append(key)
+			responses.append(resMessage[11:]) # cut RESPONSE_X_
 
 	clientSocket.close()
 
