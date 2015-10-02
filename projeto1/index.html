@@ -4,14 +4,20 @@
     <meta charset="utf-8">
     <title>BCC > ENC</title>
     <link rel="stylesheet" href="./css/style.css">
+    <script>
+        document.getElementById('m1-ps').onchange = function() 
+        {
+            document.getElementById('m1+ps')[0].disabled = !this.checked;
+        };
+    </script>
   </head>
   <body>
     <form action="/cgi-bin/webserver.py" method="post">
       <div class="box">
         #1
         ps
-        <input type="checkbox" name="m1-ps"/>
-        <input type="text" name="m1+ps" placeholder="parameters"/>
+        <input type="checkbox" id="m1-ps"/>
+        <input type="text" id="m1+ps" placeholder="parameters" disabled/>
         df
         <input type="checkbox" name="m1-df"/>
         <input type="text" name="m1+df" placeholder="parameters"/>

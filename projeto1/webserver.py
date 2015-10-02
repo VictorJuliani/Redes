@@ -12,10 +12,9 @@ def clientInstance(address, machine):
 
 	# for each marked command, make a request
 	for key in commands:
-		if form.getvalue("m"+str(machine)+"-"+commands[key]):
-			# just get parameter if checkbox is checked
+		if form.getvalue("m"+str(machine)+"-"+commands[key]): # if value is checked
 			parameter = form.getvalue("m"+str(machine)+"+"+commands[key])
-			clientSocket.sendto("REQUEST " + str(key) + " "+parameter,(address, serverPort)) # TODO add PARAMS
+			clientSocket.sendto("REQUEST " + str(key) + " " + parameter, (address, serverPort))
 
 			# Protocol: RESPONSE X RESULT
 			resMessage = clientSocket.recvfrom(2048)[0]
