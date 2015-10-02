@@ -2,45 +2,57 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title></title>
+    <title>BCC > ENC</title>
+    <link rel="stylesheet" href="./css/style.css">
   </head>
   <body>
-    <form class="" action="" method="post">
-      <div class="">
+    <form action="" method="post">
+      <div class="box">
         #1
         ps
-        <input type="checkbox" name="m1" value="ps">
+        <input type="checkbox" name="m1" value="ps" id="check1" onclick="enableTextField(); " />
+        <input type="text" name="m1-ps" placeholder="parameters" id="m1-ps" />
         df
-        <input type="checkbox" name="m1" value="df">
+        <input type="checkbox" name="m1" value="df" id="check2" onclick="enableTextField();" />
+        <input type="text" name="m1-df" placeholder="parameters" id="m1-df" />
         uptime
-        <input type="checkbox" name="m1" value="uptime">
+        <input type="checkbox" name="m1" value="uptime" id="check3" onclick="enableTextField();" />
+        <input type="text" name="m1-uptime" placeholder="parameters" id="m1-uptime" />
         finger
-        <input type="checkbox" name="m1" value="finger">
+        <input type="checkbox" name="m1" value="finger" id="check4" onclick="enableTextField();" />
+        <input type="text" name="m1-finger" placeholder="parameters" id="m1-finger" />
       </div>
-      <div class="">
+      <div class="box">
         #2
         ps
-        <input type="checkbox" name="m2" value="ps">
+        <input type="checkbox" name="m2" value="ps" id="check5" onclick="enableTextField();" />
+        <input type="text" name="m2-ps" placeholder="parameters" id="m2-ps" />
         df
-        <input type="checkbox" name="m2" value="df">
+        <input type="checkbox" name="m2" value="df" id="check6" onclick="enableTextField();" />
+        <input type="text" name="m2-df" placeholder="parameters" id="m2-df" />
         uptime
-        <input type="checkbox" name="m2" value="uptime">
+        <input type="checkbox" name="m2" value="uptime" id="check7" onclick="enableTextField();" />
+        <input type="text" name="m2-uptime" placeholder="parameters" id="m2-uptime" />
         finger
-        <input type="checkbox" name="m2" value="finger">
+        <input type="checkbox" name="m2" value="finger" id="check8" onclick="enableTextField();" />
+        <input type="text" name="m2-finger" placeholder="parameters" id="m2-finger" />
       </div>
-      <div class="">
+      <div class="box">
         #3
         ps
-        <input type="checkbox" name="m3" value="ps">
+        <input type="checkbox" name="m3" value="ps" id="check9" onclick="enableTextField();" />
+        <input type="text" name="m3-ps" placeholder="parameters" id="m3-ps" />
         df
-        <input type="checkbox" name="m3" value="df">
+        <input type="checkbox" name="m3" value="df" id="check10" onclick="enableTextField();" />
+        <input type="text" name="m3-df" placeholder="parameters" id="m3-df" />
         uptime
-        <input type="checkbox" name="m3" value="uptime">
+        <input type="checkbox" name="m3" value="uptime" id="check11" onclic="enableTextField();" />
+        <input type="text" name="m3-uptime" placeholder="parameters" id="m3-uptime" />
         finger
-        <input type="checkbox" name="m3" value="finger">
+        <input type="checkbox" name="m3" value="finger" id="check12" onclick="enableTextField();" />
+        <input type="text" name="m3-finger" placeholder="parameters" id="m3_finger" />
       </div>
-      <input type="button" name="name" value="clear">
-      <input type="submit" name="name" value="run">
+      <input class="flat-button" type="submit" name="name" value="run">
     </form>
   </body>
 </html>
