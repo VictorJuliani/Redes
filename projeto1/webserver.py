@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/Python27/python
 
 # Import modules for CGI handling
 import cgi, cgitb
