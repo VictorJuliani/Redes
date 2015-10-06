@@ -1,5 +1,6 @@
 from socket import *
-from os import subprocess
+import so
+import subprocess
 import re
 
 commands = {1: "ps", 2: "df", 3: "uptime", 4: "finger"}
@@ -18,6 +19,6 @@ while 1:
 	# clear | > < ; characters from params
 	params = re.sub('[\\|\\>\\<\\;]', "", x)
 
-	res = "RESPONSE " + index " " + subprocess.Popen(cmd + " " + params, stdout=subprocess.PIPE).stdout.read()
+	res = "RESPONSE " + index + " " + subprocess.Popen(cmd + " " + params, stdout=subprocess.PIPE).stdout.read()
 
 	serverSocket.sendto(res, clientAddress)
