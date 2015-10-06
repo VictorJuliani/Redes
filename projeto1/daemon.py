@@ -19,6 +19,6 @@ while 1:
 	# clear | > < ; characters from params
 	params = re.sub('[\\|\\>\\<\\;]', "", params)
 
-	res = "RESPONSE " + index + " " + subprocess.Popen(cmd, stdout=subprocess.PIPE).stdout.read()
+	res = "RESPONSE " + index + " " + subprocess.check_output([cmd, params])
 
 	serverSocket.sendto(res, clientAddress)
