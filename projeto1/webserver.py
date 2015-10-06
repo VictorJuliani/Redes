@@ -4,6 +4,7 @@
 import cgi, cgitb
 from socket import *
 
+# List with machine ips
 ips = ['192.168.22.128']
 
 def clientInstance(address, machine):
@@ -36,9 +37,10 @@ f = open('response.html', 'r')
 html = f.read()
 f.close()
 
-for i in range(3):
-	res, cmds = clientInstance(ips[0], i)
+for i in range(len(ips)):
+	res, cmds = clientInstance(ips[i], i)
 	for j in range(len(cmds)):
 		html.replace("machine"+str(i), "<h4>"+commands[cmds[j]]+"</h4><p>"+res[j]+"</p>")
 
+print "Content-type:text/html\r\n\r\n"
 print html
