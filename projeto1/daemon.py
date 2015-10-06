@@ -13,12 +13,12 @@ while 1:
 
 	# Protocol: REQUEST X PARAMS
 	index = message[8:9] # get X
-	cmd = commands[index] # get commands[X]
+	cmd = commands[int(index)] # get commands[X]
 	params = message[10:] # get params
 
 	# clear | > < ; characters from params
-	params = re.sub('[\\|\\>\\<\\;]', "", x)
+	params = re.sub('[\\|\\>\\<\\;]', "", params)
 
-	res = "RESPONSE " + index + " " + subprocess.Popen(cmd + " " + params, stdout=subprocess.PIPE).stdout.read()
+	res = "RESPONSE " + index + " " + subprocess.Popen(cmd, stdout=subprocess.PIPE).stdout.read()
 
 	serverSocket.sendto(res, clientAddress)

@@ -4,7 +4,6 @@
 import cgi, cgitb
 from socket import *
 
-# List with machine ips
 ips = ['192.168.22.128']
 
 def clientInstance(address, machine):
@@ -16,11 +15,14 @@ def clientInstance(address, machine):
 	# for each marked command, make a request
 	for key in commands:
 		if form.getvalue("m"+str(machine)+"-"+commands[key]): # if value is checked
+			#print form.getvalue("m"+str(machine)+"-"+commands[key])
 			parameter = form.getvalue("m"+str(machine)+"+"+commands[key])
+			if parameter == None:
+				parameter = ''
 			clientSocket.sendto("REQUEST " + str(key) + " " + parameter, (address, serverPort))
 
 			# Protocol: RESPONSE X RESULT
-			resMessage = clientSocket.recvfrom(2048)[0]
+			resMessage = clientSocket.recvfrom(8192)[0]
 			cmds_list.append(key)
 			responses.append(resMessage[11:]) # cut RESPONSE_X_
 
@@ -38,7 +40,16 @@ html = f.read()
 f.close()
 
 for i in range(len(ips)):
-	res, cmds = clientInstance(ips[i], i)
+	res, cmds = clientInstance(ips[i], i+1)
+	resMachine = ""
 	for j in range(len(cmds)):
-		html.replace("machine"+str(i), "<h4>"+commands[cmds[j]]+"</h4><p>"+res[j]+"</p>")
+		resMachine += "<h4>"+commands[cmds[j]]+"</h4><p>"+res[j].replace("\n", "<br>")+"</p>"
+
+	html = html.replace("machine"+str(i+1), resMachine)
+
+for i in range(3):
+	html = html.replace("machine" + str(i+1), "")
+
+print "Content-type:text/html"
+print
 print html
