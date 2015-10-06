@@ -41,6 +41,4 @@ for i in range(len(ips)):
 	res, cmds = clientInstance(ips[i], i)
 	for j in range(len(cmds)):
 		html.replace("machine"+str(i), "<h4>"+commands[cmds[j]]+"</h4><p>"+res[j]+"</p>")
-
-print "Content-type:text/html\r\n\r\n"
 print html
