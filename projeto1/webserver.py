@@ -4,11 +4,13 @@
 import cgi, cgitb
 from socket import *
 
+ips = ['192.168.22.128']
+
 def clientInstance(address, machine):
 	cmds_list = []
 	responses = []
 	serverPort = 12000
-	clientSocket = socket(socket.AF_INET,socket.SOCK_DGRAM)
+	clientSocket = socket(AF_INET, SOCK_DGRAM)
 
 	# for each marked command, make a request
 	for key in commands:
@@ -35,7 +37,7 @@ html = f.read()
 f.close()
 
 for i in range(3):
-	res, cmds = clientInstance("ADDR" + i, i)
+	res, cmds = clientInstance(ips[0], i)
 	for j in range(len(cmds)):
 		html.replace("machine"+str(i), "<h4>"+commands[cmds[j]]+"</h4><p>"+res[j]+"</p>")
 
