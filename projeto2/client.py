@@ -3,6 +3,7 @@
 from socket import socket, AF_INET, SOCK_DGRAM
 import sys
 
+
 def main(argv):
   port = ''
   host = ''
@@ -29,7 +30,8 @@ def main(argv):
 
     if(reply):
       print reply
-      break
+      if(reply == 'end'):
+        break
 
   client.close()
 

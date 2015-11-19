@@ -1,0 +1,1 @@
+Esse texto existe apenas com um unico proposito, que e testar se o algoritmo funciona corretamente.
