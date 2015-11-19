@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 from socket import socket, AF_INET, SOCK_DGRAM
 import sys
