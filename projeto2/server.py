@@ -9,7 +9,6 @@ import time
 import sys
 import os.path
 
-PACKET_SIZE = 800 #bytes
 WINDOW_SIZE = 10 # packets
 ACK_TIMEOUT = 30 # seconds
 
@@ -33,6 +32,7 @@ def reliable(filename, address):
 # con - the Connection object
 def sendWindow(con):
 	startAck = con.ack
+	con.seg = con.ack
  	size = min(WINDOW_SIZE, (con.size - con.ack))
  	# start sending from last acked packet and go WINDOW_SIZE or remaining packets further
   	for i in range(startAck, size):

@@ -3,6 +3,8 @@
 
 import random, sys
 
+PACKET_SIZE = 800 # bytes
+
 class Connection:
 	def __init__ (self, filename, addr):
 		self.addr = addr
@@ -12,7 +14,7 @@ class Connection:
 	  	self.ack = 0
 
 		# how many chunks
-	  	self.size = int(ceil(len(text)/PACKET_SIZE))
+	  	self.size = int(ceil(len(data)/PACKET_SIZE))
 
 	def notifyAck(self, ackpkt):
 		ackno = int(ackpkt.split(' ')[1])
