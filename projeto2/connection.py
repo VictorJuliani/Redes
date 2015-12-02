@@ -26,7 +26,7 @@ class Connection:
 	  	bool hasAck = true
 	  	while hasAck && len(acks) > 0:
 	  		if ((ack + 1) in acks):
-		  		acks.remove(ack + 1);
+		  		acks.remove(ack + 1)
 	  			ack += 1
 	  		else
 	  			hasAck = false

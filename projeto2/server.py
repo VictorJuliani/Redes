@@ -3,7 +3,7 @@
 
 from socket import socket, AF_INET, SOCK_DGRAM
 from shared import HEADER, HEADER_ACK, get_CRC32
-import Connection
+from connection import Connection
 import thread
 import time
 import sys
