@@ -61,8 +61,8 @@ def main(argv):
       break
 
 	# gathers all the data stored in the dictionary and stores it in 'full_data'
-    for i in range(1,segnum):
-   		full_data += data[i]
+  for i in range(1,segnum):
+  	full_data += data[i]
 	
 if __name__ == '__main__':
   main(sys.argv)
