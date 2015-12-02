@@ -6,35 +6,24 @@ import sys
 
 
 def main(argv):
-  port = ''
-  host = ''
-  filename = ''
-
-  if(len(argv) < 4):
-    print 'usage: client.py port hostname filename'
-    sys.exit(2)
-  else:
+  try:
     port = int(argv[1])
     host = argv[2]
     filename = argv[3]
-  
-  try:
-    client = socket(AF_INET, SOCK_DGRAM)
-  except:
-    print 'Failed to create UDP Socket!'
+  except IndexError:
+    print 'Usage: python client.py port host filename'
+    sys.exit(-1)
 
-  while 1:
-    request = filename
-    client.sendto(request, (host, port))
+  # create client socket
+  client = socket(AF_INET, SOCK_DGRAM)
 
-    reply, addr = client.recvfrom(1024)
+  # send filename to server
+  client.sendto(filename, (host, port))
 
-    if(reply):
-      print reply
-      if(reply == 'end'):
-        break
+  reply, addr = client.recvfrom(1024)
 
-  client.close()
+  print reply
 
-if __name__ == "__main__":
+
+if __name__ == '__main__':
   main(sys.argv)
