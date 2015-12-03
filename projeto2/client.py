@@ -10,6 +10,7 @@ def main(argv):
 		port = int(argv[1])
 		host = argv[2]
 		filename = argv[3]
+		# TODO PL & PC (prob. loss & prob. corr.)
 	except IndexError:
 		print 'Usage: python client.py port host filename'
 		sys.exit(-1)
@@ -44,13 +45,13 @@ def main(argv):
 		end = int(header[3].split(' ')[1])
 		
 		# check if checksum value is right	  
-		if (checksum != get_CRC32(reply_data)):
+		if (checksum != get_CRC32(reply_data)): # TODO add msg logging
 			continue
 		
 		# 'segnum' from header
 		# 'ack' from header
 		segnum = int(header[0].split(' ')[1])
-		ack = int(header[1].split(' ')[1])
+		ack = int(header[1].split(' ')[1]) # TODO out of window packets MUST BE IGNORED?! CHECK go-back-n <<<<<
 				
 		# check if package has greater 'segnum' than the last one acknowledged	
 		if (segnum > ack):
@@ -67,6 +68,8 @@ def main(argv):
 	full_data = ''
 	for i in sorted(data):
 		full_data += data[i]
+
+	# TODO create file
 	
 	print full_data
 	

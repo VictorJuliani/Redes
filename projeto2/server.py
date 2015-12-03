@@ -33,7 +33,7 @@ def reliable(filename, address):
 def sendWindow(con):
 	startAck = con.ack
 	con.seg = con.ack
-	size = min(WINDOW_SIZE, (con.lastAck - con.ack))
+	size = getWindowSize(con)
 	
 	# start sending from last acked packet and go WINDOW_SIZE or remaining packets further
 	for i in range(con.cursor, con.cursor+size):
@@ -50,6 +50,10 @@ def ackWait(con, targetAck):
 	while (con.ack < targetAck):
 		continue
 
+# use this to ease TCP reno
+def getWindowSize(con):
+	return min(WINDOW_SIZE, (con.lastAck - con.ack))
+
 # con - the Connection object
 # data - content of packet
 # end - is last packet?
@@ -62,6 +66,7 @@ def sendPacket(con, data, end):
 # init
 try:
 	port = int(sys.argv[1])
+	# TODO PL & PC (prob. loss & prob. corr.)
 except IndexError:
 	print 'Usage: python server.py port'
 	sys.exit(-1)
