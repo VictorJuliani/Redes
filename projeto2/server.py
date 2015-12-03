@@ -15,15 +15,15 @@ ACK_TIMEOUT = 30 # seconds
 # filename - file to send
 # address - target
 def reliable(filename, address):
-  	con = Connection(filename, address)
-  	clients[address] = con
-  	data = con.data
+	con = Connection(filename, address)
+	clients[address] = con
+	data = con.data
 
-  	while (con.ack < con.size):
-  		sendWindow(con)
+	while (con.ack < con.size):
+		sendWindow(con)
 
-  	con.seg += 1
-  	while (con.ack < con.seg):
+	con.seg += 1
+	while (con.ack < con.seg):
 		sendPacket(con, '', 1) # notify client of end
 		ackWait(con, con.seg)
 
@@ -33,13 +33,13 @@ def reliable(filename, address):
 def sendWindow(con):
 	startAck = con.ack
 	con.seg = con.ack
- 	size = min(WINDOW_SIZE, (con.size - con.ack))
- 	# start sending from last acked packet and go WINDOW_SIZE or remaining packets further
-  	for i in range(startAck, size):
-	    con.seg += 1
-	    start = i * con.size		
-	    end = (i+1) * con.size
-	    sendPacket(con, data[start:end], 0)
+	size = min(WINDOW_SIZE, (con.size - con.ack))
+	# start sending from last acked packet and go WINDOW_SIZE or remaining packets further
+	for i in range(startAck, size):
+		con.seg += 1
+		start = i * con.size		
+		end = (i+1) * con.size
+		sendPacket(con, data[start:end], 0)
 
 	# wait for acks
 	ackWait(con, (startAck + size - 1))
@@ -53,17 +53,17 @@ def ackWait(con, targetAck):
 # data - content of packet
 # end - is last packet?
 def sendPacket(con, data, end):
-  	packet = HEADER % (con.seg, con.ack, get_CRC32(data), end) # build header
-  	packet += data # add body
-  	server.sendto(packet, con.addr)
-  	# TODO add msg logging
+	packet = HEADER % (con.seg, con.ack, get_CRC32(data), end) # build header
+	packet += data # add body
+	server.sendto(packet, con.addr)
+	print "Sending " + str(len(packet)) + " bytes to " + str(addr)
 
 # init
 try:
-  	port = int(sys.argv[1])
+	port = int(sys.argv[1])
 except IndexError:
-  	print 'Usage: python server.py port'
-  	sys.exit(-1)
+	print 'Usage: python server.py port'
+	sys.exit(-1)
 
 host = ''
 
@@ -73,10 +73,9 @@ server.bind((host, port))
 clients = {}
 
 while 1:
-  	pkt, addr = server.recvfrom(1024)
-  	# TODO add msg logging
-  	if addr in clients:
-  		clients[addr].notifyAck(pkt) # notify client that an ack is received and handle it
-  	elif os.path.isfile(pkt):
-  		thread.start_new_thread(reliable, (pkt, addr)) # new client requesting file!
-  	# TODO else answer error (use HEADER!!)
+	pkt, addr = server.recvfrom(1024)
+	if addr in clients:
+		clients[addr].notifyAck(pkt) # notify client that an ack is received and handle it
+	elif os.path.isfile(pkt):
+		thread.start_new_thread(reliable, (pkt, addr)) # new client requesting file!
+	# TODO else answer error (use HEADER!!)

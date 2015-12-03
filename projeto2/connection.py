@@ -7,28 +7,30 @@ PACKET_SIZE = 800 # bytes
 
 class Connection:
 	def __init__ (self, filename, addr):
+		print "New connection from " + str(addr) + " requesting " + filename
 		fp = open(filename, 'r')
-	  	self.data = fp.read()
+		self.data = fp.read()
 		self.addr = addr
-	  	self.seg = random.randint(1,1000)
-	  	self.ack = 0
+		self.seg = random.randint(1,1000)
+		self.ack = 0
 
 		# how many chunks
-	  	self.size = int(math.ceil(len(self.data)/PACKET_SIZE))
+		self.size = int(math.ceil(len(self.data)/PACKET_SIZE))
 
 	def notifyAck(self, ackpkt):
 		ackno = int(ackpkt.split(' ')[1])
+		print "Received ack " + ackno + " on connection " + str(self.addr)
 
-	  	if (ackno not in self.acks): # save ack received
-	  		acks.append(ackno)
+		if (ackno not in self.acks): # save ack received
+			acks.append(ackno)
 
-	  	# ACKs may come out of order, so check if next ack is in list of received acks
-	  	# if it is, increase ack and remove from list
-	  	# else, wait for it
-	  	hasAck = True
-	  	while (hasAck and len(acks) > 0):
-	  		if ((ack + 1) in acks):
-		  		acks.remove(ack + 1)
-	  			ack += 1
-	  		else:
-	  			hasAck = False
+		# ACKs may come out of order, so check if next ack is in list of received acks
+		# if it is, increase ack and remove from list
+		# else, wait for it
+		hasAck = True
+		while (hasAck and len(acks) > 0):
+			if ((ack + 1) in acks):
+				acks.remove(ack + 1)
+				ack += 1
+			else:
+				hasAck = False

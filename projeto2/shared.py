@@ -13,5 +13,5 @@ HEADER = 'segnum %d\nacknum %d\nchecksum %s\nend %d\n\n'
 HEADER_ACK = 'ack %d'
 
 def get_CRC32(data):
-    buf = (binascii.crc32(data) & 0xFFFFFFFF)
-    return "%08X" % buf
+	buf = (binascii.crc32(data) & 0xFFFFFFFF)
+	return "%08X" % buf

@@ -18,18 +18,20 @@ def main(argv):
 	client = socket(AF_INET, SOCK_DGRAM)
 	# send filename to server
 	client.sendto(filename, (host, port))  
-	# TODO add msg logging
+	print "Connecting to " + host + ":" + port
+	print "Requesting file " + filename
 
 	# loop until all packages have been received
 	while 1:
 		# receives the package and stores in 'reply'.
-		# 'reply_find' stores the mark that divides the  	  	  		# header and the data
+		# 'reply_find' stores the mark that divides the
+		# header and the data
 		# 'reply_data' stores the data.
-	   	reply, addr = client.recvfrom(1024)	
-		# TODO add msg logging
-	 	reply_find = reply.find('\n\n')
-	 	reply_data = reply[(reply_find+1):]
-    
+		reply, addr = client.recvfrom(1024)	
+		print "Received " + str(len(reply)) + " bytes from server"
+		reply_find = reply.find('\n\n')
+		reply_data = reply[(reply_find+1):]
+
 		# 'header' stores the package header
 		header = reply[0:reply_find].split('\n')
 		
@@ -46,14 +48,14 @@ def main(argv):
 		# 'ack' from header
 		segnum = int(header[0].split(' ')[1])
 		ack = int(header[1].split(' ')[1])
-	  	
+		
 		# stores the data in the dictionary with 'segnum' as key
 		data[segnum] = reply_data
-	  	
+		
 		# check if package has greater 'segnum' than the last one acknowledged	
 		if (segnum > ack):
 			client.sendto((HEADER_ACK % (segnum)), (host, port))
-		# TODO add msg logging
+			print "Acking server for segnum " + segnum
 
 		# check if its the last package
 		if (end == 1):
@@ -66,4 +68,4 @@ def main(argv):
 	print full_data
 	
 if __name__ == '__main__':
-  main(sys.argv)
+	main(sys.argv)
