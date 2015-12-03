@@ -23,7 +23,7 @@ def reliable(filename, address):
   		sendWindow(con)
 
   	con.seg += 1
-  	while (con.ack) < con.seg):
+  	while (con.ack < con.seg):
 		sendPacket(con, '', 1) # notify client of end
 		ackWait(con, con.seg)
 
@@ -46,7 +46,7 @@ def sendWindow(con):
 
 def ackWait(con, targetAck):	
 	# TODO use a timeout for failure in packet receiving will result in endless loop!
-	while con.ack < targetAck):
+	while (con.ack < targetAck):
 		continue
 
 # con - the Connection object
@@ -75,7 +75,7 @@ clients = {}
 while 1:
   	pkt, addr = server.recvfrom(1024)
   	# TODO add msg logging
-  	if addr in clients
+  	if addr in clients:
   		clients[addr].notifyAck(pkt) # notify client that an ack is received and handle it
   	elif os.path.isfile(pkt):
   		thread.start_new_thread(reliable, (pkt, addr)) # new client requesting file!

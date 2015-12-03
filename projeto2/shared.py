@@ -2,6 +2,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+import binascii
+
 # HEADER:
 # segnum %d\n
 # acknum %d\n
