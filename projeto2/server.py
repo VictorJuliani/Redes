@@ -3,7 +3,7 @@
 
 from socket import socket, AF_INET, SOCK_DGRAM
 from shared import HEADER, HEADER_ACK, get_CRC32
-from connection import Connection
+from connection import Connection, PACKET_SIZE
 import thread
 import time
 import sys
@@ -34,15 +34,16 @@ def sendWindow(con):
 	startAck = con.ack
 	con.seg = con.ack
 	size = min(WINDOW_SIZE, (con.lastAck - con.ack))
+	
 	# start sending from last acked packet and go WINDOW_SIZE or remaining packets further
 	for i in range(con.cursor, con.cursor+size):
 		con.seg += 1
-		start = i * con.size		
-		end = (i+1) * con.size
+		start = int(i * PACKET_SIZE)
+		end = int((i+1) * PACKET_SIZE)
 		sendPacket(con, con.data[start:end], 0)
 
 	# wait for acks
-	ackWait(con, (startAck + size - 1))
+	ackWait(con, (startAck + size))
 
 def ackWait(con, targetAck):	
 	# TODO use a timeout for failure in packet receiving will result in endless loop!
@@ -56,6 +57,8 @@ def sendPacket(con, data, end):
 	packet = HEADER % (con.seg, con.ack, get_CRC32(data), end) # build header
 	packet += data # add body
 	server.sendto(packet, con.addr)
+	print "Data " + data
+	print "Pck " + packet
 	print "Sending " + str(len(packet)) + " bytes to " + str(addr)
 
 # init

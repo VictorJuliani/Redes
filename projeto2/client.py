@@ -21,6 +21,8 @@ def main(argv):
 	print "Connecting to " + str(host) + ":" + str(port)
 	print "Requesting file " + filename
 
+	data = {}
+
 	# loop until all packages have been received
 	while 1:
 		# receives the package and stores in 'reply'.
@@ -29,14 +31,12 @@ def main(argv):
 		# 'reply_data' stores the data.
 		reply, addr = client.recvfrom(1024)	
 		print "Received " + str(len(reply)) + " bytes from server"
-		print reply
+
 		reply_find = reply.find('\n\n')
-		reply_data = reply[(reply_find+1):]
+		reply_data = reply[(reply_find+2):]
 
 		# 'header' stores the package header
 		header = reply[0:reply_find].split('\n')
-		print header
-		print reply_data
 
 		# 'checksum' stores the checksum value from the header.
 		# same thing with 'end'.
@@ -51,10 +51,7 @@ def main(argv):
 		# 'ack' from header
 		segnum = int(header[0].split(' ')[1])
 		ack = int(header[1].split(' ')[1])
-		
-		# stores the data in the dictionary with 'segnum' as key
-		data[segnum] = reply_data
-		
+				
 		# check if package has greater 'segnum' than the last one acknowledged	
 		if (segnum > ack):
 			client.sendto((HEADER_ACK % (segnum)), (host, port))
@@ -63,11 +60,14 @@ def main(argv):
 		# check if its the last package
 		if (end == 1):
 			break
+		else: # stores the data in the dictionary with 'segnum' as key
+			data[segnum] = reply_data
 
 	# gathers all the data stored in the dictionary and stores it in 'full_data'
-	for i in range(1, segnum):
+	full_data = ''
+	for i in sorted(data):
 		full_data += data[i]
-
+	
 	print full_data
 	
 if __name__ == '__main__':
