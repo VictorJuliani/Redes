@@ -3,7 +3,7 @@
 
 import random, sys, math
 
-PACKET_SIZE = 800 # bytes
+PACKET_SIZE = 800.0 # bytes
 
 class Connection:
 	def __init__ (self, filename, addr):
@@ -12,14 +12,16 @@ class Connection:
 		self.data = fp.read()
 		self.addr = addr
 		self.seg = random.randint(1,1000)
-		self.ack = 0
+		self.ack = self.seg
+		self.cursor = 0
 
 		# how many chunks
 		self.size = int(math.ceil(len(self.data)/PACKET_SIZE))
+		self.lastAck = self.ack + self.size
 
 	def notifyAck(self, ackpkt):
 		ackno = int(ackpkt.split(' ')[1])
-		print "Received ack " + ackno + " on connection " + str(self.addr)
+		print "Received ack " + str(ackno) + " on connection " + str(self.addr)
 
 		if (ackno not in self.acks): # save ack received
 			acks.append(ackno)
@@ -32,5 +34,6 @@ class Connection:
 			if ((ack + 1) in acks):
 				acks.remove(ack + 1)
 				ack += 1
+				cursor += 1
 			else:
 				hasAck = False

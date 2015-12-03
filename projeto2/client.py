@@ -18,7 +18,7 @@ def main(argv):
 	client = socket(AF_INET, SOCK_DGRAM)
 	# send filename to server
 	client.sendto(filename, (host, port))  
-	print "Connecting to " + host + ":" + port
+	print "Connecting to " + str(host) + ":" + str(port)
 	print "Requesting file " + filename
 
 	# loop until all packages have been received
@@ -29,12 +29,15 @@ def main(argv):
 		# 'reply_data' stores the data.
 		reply, addr = client.recvfrom(1024)	
 		print "Received " + str(len(reply)) + " bytes from server"
+		print reply
 		reply_find = reply.find('\n\n')
 		reply_data = reply[(reply_find+1):]
 
 		# 'header' stores the package header
 		header = reply[0:reply_find].split('\n')
-		
+		print header
+		print reply_data
+
 		# 'checksum' stores the checksum value from the header.
 		# same thing with 'end'.
 		checksum = header[2].split(' ')[1]
@@ -55,7 +58,7 @@ def main(argv):
 		# check if package has greater 'segnum' than the last one acknowledged	
 		if (segnum > ack):
 			client.sendto((HEADER_ACK % (segnum)), (host, port))
-			print "Acking server for segnum " + segnum
+			print "Acking server for segnum " + str(segnum)
 
 		# check if its the last package
 		if (end == 1):

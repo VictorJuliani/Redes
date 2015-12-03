@@ -18,8 +18,8 @@ def reliable(filename, address):
 	con = Connection(filename, address)
 	clients[address] = con
 	data = con.data
-
-	while (con.ack < con.size):
+	
+	while (con.ack < con.lastAck):
 		sendWindow(con)
 
 	con.seg += 1
@@ -33,13 +33,13 @@ def reliable(filename, address):
 def sendWindow(con):
 	startAck = con.ack
 	con.seg = con.ack
-	size = min(WINDOW_SIZE, (con.size - con.ack))
+	size = min(WINDOW_SIZE, (con.lastAck - con.ack))
 	# start sending from last acked packet and go WINDOW_SIZE or remaining packets further
-	for i in range(startAck, size):
+	for i in range(con.cursor, con.cursor+size):
 		con.seg += 1
 		start = i * con.size		
 		end = (i+1) * con.size
-		sendPacket(con, data[start:end], 0)
+		sendPacket(con, con.data[start:end], 0)
 
 	# wait for acks
 	ackWait(con, (startAck + size - 1))
