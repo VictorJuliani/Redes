@@ -57,8 +57,6 @@ def sendPacket(con, data, end):
 	packet = HEADER % (con.seg, con.ack, get_CRC32(data), end) # build header
 	packet += data # add body
 	server.sendto(packet, con.addr)
-	print "Data " + data
-	print "Pck " + packet
 	print "Sending " + str(len(packet)) + " bytes to " + str(addr)
 
 # init

@@ -3,7 +3,7 @@
 
 import random, sys, math
 
-PACKET_SIZE = 800.0 # bytes
+PACKET_SIZE = 10.0 # bytes
 
 class Connection:
 	def __init__ (self, filename, addr):

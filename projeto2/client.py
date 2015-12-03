@@ -54,7 +54,7 @@ def main(argv):
 				
 		# check if package has greater 'segnum' than the last one acknowledged	
 		if (segnum > ack):
-			client.sendto((HEADER_ACK % (segnum)), (host, port))
+			client.sendto((HEADER_ACK % (segnum)), (host, port)) # TODO add checksum here too!!!
 			print "Acking server for segnum " + str(segnum)
 
 		# check if its the last package
