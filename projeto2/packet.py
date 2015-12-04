@@ -1,6 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+import binascii
+
 # HEADER:
 # segnum %d\n
 # acknum %d\n
@@ -14,14 +16,14 @@ class Packet:
 		self.data = data
 		self.seg = seg
 		self.ack = ack
-		self.checksum = get_CRC32(data)
+		self.checksum = self.get_CRC32(data)
 		self.end = end
 		self.err = err
 				
 	# build packet string
 	def wrap(self):
-		packet = HEADER % (self.seg, self.ack, get_CRC32(), self.end, self.err) # build header
-		packet += data # add body
+		packet = HEADER % (self.seg, self.ack, self.checksum, self.end, self.err) # build header
+		packet += self.data # add body
 		return packet
 
 	def unwrap(self):
@@ -36,8 +38,8 @@ class Packet:
 		self.err = int(header[4].split(' ')[1])
 
 	def validChecksum(self):
-		return self.checksum == get_CRC32(self.data)
+		return self.checksum == self.get_CRC32(self.data)
 
-	def get_CRC32(self):
-		buf = (binascii.crc32(self.data) & 0xFFFFFFFF)
+	def get_CRC32(self, data):
+		buf = (binascii.crc32(data) & 0xFFFFFFFF)
 		return "%08X" % buf

@@ -4,7 +4,7 @@
 from socket import socket, AF_INET, SOCK_DGRAM
 from packet import Packet
 from reliable_sock import RSock
-import sys
+import sys, thread
 
 def main(argv):
 	try:
@@ -20,12 +20,15 @@ def main(argv):
 	client = socket(AF_INET, SOCK_DGRAM)
 
 	addr = (host, port)
+
+	thread.start_new_thread(recvFile, (client,))
 	sock = RSock(client, addr)
 	sock.enqueuePacket(filename)
-	print "Connecting to " + str(host) + ":" + str(port) " to ask for file " + filename
+	print "Connecting to " + str(addr) + " to ask for file " + filename
+	sock.start()
 
+def recvFile(client):
 	data = []
-
 	# loop until all packages have been received
 	while True:
 		# receives the package and stores in 'reply'.

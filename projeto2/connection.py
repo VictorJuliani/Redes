@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import random, sys, math
+import sys, math
 
 PACKET_SIZE = 10.0 # bytes
 

@@ -4,6 +4,7 @@
 from socket import socket, AF_INET, SOCK_DGRAM
 from connection import Connection, PACKET_SIZE
 from reliable_sock import RSock
+from packet import Packet
 import thread
 import sys
 import os.path
@@ -14,6 +15,7 @@ def newCon(packet, addr):
 		sock = RSock(server, addr)
 		sock.init = True # connection received, so it's initialized
 		clients[addr] = Connection(filename, sock)
+		sock.start()
 
 # init
 try:
