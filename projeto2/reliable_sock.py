@@ -1,11 +1,10 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from collections import deque
+from Queue import Queue
 from packet import Packet
 import binascii, random, threading
 
-PACKET_SIZE = 10.0 # bytes
 WINDOW_SIZE = 10 # packets
 ACK_TIMEOUT = 30 # seconds TODO
 
@@ -15,7 +14,9 @@ class RSock:
 		self.end = False
 		self.sock = sock
 		self.addr = addr
-		self.buff = deque()
+		self.buff = Queue() # packets to send
+		self.fail = Queue() # packets timed out to resend
+		self.waiting = Queue() # packets wating for ACK TODO on timeout add to fail queue
 
 		self.seg = random.randint(1,1000) # current packet
 		self.ack = self.seg # window base point
@@ -24,21 +25,15 @@ class RSock:
 		self.lock = threading.Condition()
 
 	def start(self):
-		wndCursor = 0 # current sending packet inside window
 		while not self.end:
-			self.lock.acquire()
-			if len(self.buff) <= wndCursor:
-				self.lock.wait()
-
-			packet = self.buff[wndCursor] # do not pop for packets may not be acked and required a try-again
-			wndCursor += 1
+			packet = self.nextPacket()
 
 			if packet.seg > (self.ack + WINDOW_SIZE):
-				wndCursor = 0 # reached end of window, start count again
-				self.lock.wait() # block send for this packet is out of window
-			
-			self.lock.release()
+				self.lock.acquire()
+				self.lock.wait() # block send for this packet is out of window			
+				self.lock.release()
 
+			waiting.put(packet) # add packet to waiting queue
 			wrap = packet.wrap()
 			
 			print "Sending " + str(len(wrap)) + " bytes to " + str(self.addr)
@@ -48,6 +43,12 @@ class RSock:
 			if packet.end:
 				print "Ending connection to " + str(self.addr)
 				self.end = True
+
+	def nextPacket(self):
+		if not self.fail.empty():
+			return self.fail.get(True) # not empty, so won't block...
+
+		return self.buff.get(True) # block until another packet is added
 
 	def enqueuePacket(self, data):
 		seg = 0
@@ -65,7 +66,10 @@ class RSock:
 		self.addAndWake(Packet(data, 0, ack, endAck))
 
 	def addAndWake(self, packet):
-		self.buff.append(packet)
+		self.buff.put(packet)
+		self.wake()
+
+	def wake(self)
 		try:
 			self.lock.notify()
 		except RuntimeError:
@@ -83,9 +87,16 @@ class RSock:
 		if (not self.init and packet.ack == 0) or (packet.ack > 0 and packet.ack == self.ack + 1): # expected ack!
 			self.init = True
 			self.ack += 1
-			self.buff.popLeft() # remove acked packet from queue
 			print "Received ack " + str(ackno) + " on connection " + str(self.addr)
-			wake()	
+
+			try:
+				waited = self.waiting.get()
+				if waited.seg != packet.ack:
+					print "Removed wrong packet of waiting list. Ack: " + packet.ack + " Expected seg: " + waited.seg
+			except Empty:
+				print "Failed removing acked packet from waiting list!!!"
+
+			self.wake()	
 			return packet
 		elif self.nextSeg < packet.seg:
 			self.ackPacket(packet.seg, packet.end) # old packet received again, ACK might be lost.. send it again
