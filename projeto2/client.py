@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from socket import socket, AF_INET, SOCK_DGRAM
-from shared import HEADER, HEADER_ACK, get_CRC32
+from packet import Packet
+from reliable_sock import RSock
 import sys
 
 def main(argv):
@@ -17,57 +18,34 @@ def main(argv):
 
 	# create client socket
 	client = socket(AF_INET, SOCK_DGRAM)
-	# send filename to server
-	client.sendto(filename, (host, port))  
-	print "Connecting to " + str(host) + ":" + str(port)
-	print "Requesting file " + filename
 
-	data = {}
+	addr = (host, port)
+	sock = RSock(client, addr)
+	sock.enqueuePacket(filename)
+	print "Connecting to " + str(host) + ":" + str(port) " to ask for file " + filename
+
+	data = []
 
 	# loop until all packages have been received
-	while 1:
+	while True:
 		# receives the package and stores in 'reply'.
-		# 'reply_find' stores the mark that divides the
-		# header and the data
-		# 'reply_data' stores the data.
 		reply, addr = client.recvfrom(1024)	
 		print "Received " + str(len(reply)) + " bytes from server"
+		packet = sock.receivePacket(reply)
 
-		reply_find = reply.find('\n\n')
-		reply_data = reply[(reply_find+2):]
-
-		# 'header' stores the package header
-		header = reply[0:reply_find].split('\n')
-
-		# 'checksum' stores the checksum value from the header.
-		# same thing with 'end'.
-		checksum = header[2].split(' ')[1]
-		end = int(header[3].split(' ')[1])
-		
-		# check if checksum value is right	  
-		if (checksum != get_CRC32(reply_data)): # TODO add msg logging
+		if packet == None:
 			continue
-		
-		# 'segnum' from header
-		# 'ack' from header
-		segnum = int(header[0].split(' ')[1])
-		ack = int(header[1].split(' ')[1]) # TODO out of window packets MUST BE IGNORED?! CHECK go-back-n <<<<<
-				
-		# check if package has greater 'segnum' than the last one acknowledged	
-		if (segnum > ack):
-			client.sendto((HEADER_ACK % (segnum)), (host, port)) # TODO add checksum here too!!!
-			print "Acking server for segnum " + str(segnum)
 
 		# check if its the last package
-		if (end == 1):
+		if (packet.end == 1):
 			break
-		else: # stores the data in the dictionary with 'segnum' as key
-			data[segnum] = reply_data
+		else: # store packet data in data list
+			data.append(packet.data)
 
 	# gathers all the data stored in the dictionary and stores it in 'full_data'
 	full_data = ''
-	for i in sorted(data):
-		full_data += data[i]
+	for i in data:
+		full_data += data
 
 	# TODO create file
 	
