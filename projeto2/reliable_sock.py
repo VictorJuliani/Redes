@@ -27,7 +27,7 @@ class RSock:
 		wndCursor = 0 # current sending packet inside window
 		while not self.end:
 			self.lock.acquire()
-			if len(self.buff) == 0:
+			if len(self.buff) <= wndCursor:
 				self.lock.wait()
 
 			packet = self.buff[wndCursor] # do not pop for packets may not be acked and required a try-again
@@ -35,7 +35,7 @@ class RSock:
 
 			if packet.seg > (self.ack + WINDOW_SIZE):
 				wndCursor = 0 # reached end of window, start count again
-				lock.wait() # block send for this packet is out of window
+				self.lock.wait() # block send for this packet is out of window
 			
 			self.lock.release()
 
@@ -87,9 +87,11 @@ class RSock:
 			print "Received ack " + str(ackno) + " on connection " + str(self.addr)
 			wake()	
 			return packet
+		elif self.nextSeg < packet.seg:
+			self.ackPacket(packet.seg, packet.end) # old packet received again, ACK might be lost.. send it again
 		elif self.nextSeg == packet.seg: # expected seg!
 			self.nextSeg += 1
-			self.ackPacket(packet.seg, packet.end) # ACK packet received
+			self.ackPacket(packet.seg, packet.end)
 			return packet
 		else:
 			print "Bad packet received! Seg: " + packet.seg + " expected: " + self.nextSeg + " ack: " + packet.ack
