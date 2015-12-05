@@ -27,7 +27,7 @@ class RSock:
 	def start(self):
 		while not self.end:
 			packet = self.nextPacket()
-			waiting.put(packet) # add packet to waiting queue. it will block if waiting queue is full: all packets are sent & wait for acking
+			self.waiting.put(packet) # add packet to waiting queue. it will block if waiting queue is full: all packets are sent & wait for acking
 			wrap = packet.wrap()
 			
 			print "Sending " + str(len(wrap)) + " bytes to " + str(self.addr)
@@ -88,6 +88,7 @@ class RSock:
 				self.seg = packet.ack # set seg with nextSeg received in ack field
 				self.ack = packet.ack # intitialize ack with nextSeg
 				self.buff.put(Packet('', self.nextSeg, 0, packet.end)) # ack with nextSeg expected on seg field
+				return packet
 			else: # con ack
 				self.seg = packet.seg # set seg with nextSeg of client
 				self.ack = packet.seg # intitialize ack with nextSeg
