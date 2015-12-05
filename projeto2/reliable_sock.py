@@ -22,7 +22,7 @@ class RSock:
 		self.ack = 0 # window base point
 		self.nextSeg = random.randint(1,1000) # next expected packet
 
-		self.lock = threading.Condition()
+		# self.lock = threading.Condition()
 
 	def start(self):
 		while not self.end:
@@ -52,24 +52,20 @@ class RSock:
 		else:
 			packet.ack = self.nextSeg # con packet: seg = 0; ack = nextSeg
 
-		self.addAndWake(packet)
+		self.buff.put(packet)
 
 	def end(self):
 		packet = Packet('', self.seg, 0, 1)
 		self.seg += 1
-		self.addAndWake(packet)
+		self.buff.put(packet)
 
 	def err(self):
 		packet = Packet('', self.seg, 0, 0, 1)
 		self.seg += 1
-		self.addAndWake(packet)
+		self.buff.put(packet)
 		
 	def ackPacket(self, ack, endAck):
-		self.addAndWake(Packet('', 0, ack, endAck))
-
-	def addAndWake(self, packet):
-		self.buff.put(packet)
-		# self.wake()
+		self.buff.put(Packet('', 0, ack, endAck))
 
 	def wake(self):
 		try:
@@ -88,10 +84,10 @@ class RSock:
 		if not self.init:
 			self.init = True
 			if packet.seg == 0: # con request
-				print "Connection request from " : + str(self.addr)
+				print "Connection request from " + str(self.addr)
 				self.seg = packet.ack # set seg with nextSeg received in ack field
 				self.ack = packet.ack # intitialize ack with nextSeg
-				self.addAndWake(Packet('', self.nextSeg, 0, packet.end)) # ack with nextSeg expected on seg field
+				self.buff.put(Packet('', self.nextSeg, 0, packet.end)) # ack with nextSeg expected on seg field
 			else: # con ack
 				self.seg = packet.seg # set seg with nextSeg of client
 				self.ack = packet.seg # intitialize ack with nextSeg
