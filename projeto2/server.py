@@ -4,9 +4,7 @@
 from socket import socket, AF_INET, SOCK_DGRAM
 from reliable_sock import RSock
 from packet import Packet
-import thread
-import sys
-import os.path
+import thread, sys, os.path, math
 
 PACKET_SIZE = 10.0 # bytes
 
@@ -24,7 +22,7 @@ def newCon(data, addr):
 
 def fileRequest(packet, sock):
 	if not os.path.isfile(packet.data):
-		sock.err() # send error packet...
+		sock.errPacket() # send error packet...
 	else:
 		filename = packet.data
 		fp = open(filename, 'r')
@@ -34,10 +32,10 @@ def fileRequest(packet, sock):
 		for i in range(size):
 			start = int(i * PACKET_SIZE)
 			end = int((i+1) * PACKET_SIZE)
-			sock.enqueuePacket(self.filedata[start:end])
+			sock.enqueuePacket(filedata[start:end])
 
 		print "File request " + filename + " from " + str(addr)
-		sock.end() # enqueue end packet after all file packets
+		sock.endPacket() # enqueue end packet after all file packets
 
 # init
 try:
@@ -51,6 +49,8 @@ host = ''
 
 server = socket(AF_INET, SOCK_DGRAM)
 server.bind((host, port))
+
+print "Server started"
 
 clients = {}
 

@@ -17,6 +17,9 @@ class RSock:
 		self.buff = Queue() # packets to send
 		self.fail = Queue() # packets timed out to resend
 		self.waiting = Queue(WINDOW_SIZE) # packets wating for ACK TODO on timeout add to fail queue
+		self.acks = Queue()
+
+		# TODO sort waiting queue by seg! on ack != seg, add packet back to the queue
 
 		self.seg = 0 # current packet
 		self.ack = 0 # window base point
@@ -26,23 +29,36 @@ class RSock:
 
 	def start(self):
 		while not self.end:
+			src = 0
+			if not self.acks.empty():
+				src = 1
+				packet = self.acks.get(False)
+			elif not self.fail.empty():
+				src = 2
+				packet = self.fail.get(False) # not empty, so won't block...
+			else: # no failed packets or acks to send...
+				self.buff.get(True) # block until another packet is added
+
 			packet = self.nextPacket()
-			self.waiting.put(packet) # add packet to waiting queue. it will block if waiting queue is full: all packets are sent & wait for acking
+			if src != 1: # don't block on acks...
+				self.waiting.put(packet) # add packet to waiting queue. it will block if waiting queue is full: all packets are sent & wait for acking
 			wrap = packet.wrap()
 			
-			print "Sending " + str(len(wrap)) + " bytes to " + str(self.addr)
+			print "Sending seg " + str(packet.seg) + " to " + str(self.addr)
 			self.sock.sendto(wrap, self.addr)
+
+			# inform Queue we're done with the element we got
+			if src == 0:
+				self.buff.task_done()
+			elif src == 1:
+				self.acks.task_done()
+			else:
+				self.fail.task_done()
 
 			# TODO end packets/end acks CAN FAIL TOO. Use timeout to set end = True when end packet is sent
 			if packet.end:
-				print "Ending connection to " + str(self.addr)
+				#print "Ending connection to " + str(self.addr)
 				self.end = True
-
-	def nextPacket(self):
-		if not self.fail.empty():
-			return self.fail.get(False) # not empty, so won't block...
-
-		return self.buff.get(True) # block until another packet is added
 
 	def enqueuePacket(self, data):
 		packet = Packet(data)
@@ -54,18 +70,18 @@ class RSock:
 
 		self.buff.put(packet)
 
-	def end(self):
-		packet = Packet('', self.seg, 0, 1)
+	def endPacket(self):
+		packet = Packet('', self.seg, end=1)
 		self.seg += 1
 		self.buff.put(packet)
 
-	def err(self):
-		packet = Packet('', self.seg, 0, 0, 1)
+	def errPacket(self):
+		packet = Packet('', self.seg, err=1)
 		self.seg += 1
 		self.buff.put(packet)
 		
 	def ackPacket(self, ack, endAck):
-		self.buff.put(Packet('', 0, ack, endAck))
+		self.acks.put(Packet('', 0, ack, endAck))
 
 	def wake(self):
 		try:
@@ -78,7 +94,7 @@ class RSock:
 		packet.unwrap()
 
 		if not packet.validChecksum(): # do not receive broken packets
-			print "Bad checksum received on seg: " + packet.seg + " ack: " + packet.ack
+			print "Bad checksum received on seg: " + str(packet.seg) + " ack: " + str(packet.ack)
 			return None
 
 		if not self.init:
@@ -87,19 +103,19 @@ class RSock:
 				print "Connection request from " + str(self.addr)
 				self.seg = packet.ack # set seg with nextSeg received in ack field
 				self.ack = packet.ack # intitialize ack with nextSeg
-				self.buff.put(Packet('', self.nextSeg, 0, packet.end)) # ack with nextSeg expected on seg field
+				self.acks.put(Packet('', self.nextSeg, 0, packet.end)) # ack with nextSeg expected on seg field
 				return packet
 			else: # con ack
 				self.seg = packet.seg # set seg with nextSeg of client
 				self.ack = packet.seg # intitialize ack with nextSeg
 		elif (packet.ack > 0 and self.ack == packet.ack): # expected ack!
 			self.ack += 1
-			print "Received ack " + str(ackno) + " on connection " + str(self.addr)
+			print "Received expected ack " + str(packet.ack) + " on connection " + str(self.addr)
 
-			if not waiting.empty():
+			if not self.waiting.empty():
 				waited = self.waiting.get(False) # don't block...
 				if waited.seg != packet.ack:
-					print "Removed wrong packet of waiting list. Ack: " + packet.ack + " Expected seg: " + waited.seg # TODO FOR DEBUG ONLY! REMOVE
+					print "Removed wrong packet of waiting list. Expected seg: " + str(waited.seg) # TODO FOR DEBUG ONLY! REMOVE
 			else: # TODO FOR DEBUG ONLY! REMOVE
 				print "Failed removing acked packet from waiting list!!!"
 		elif self.nextSeg < packet.seg:
@@ -107,8 +123,9 @@ class RSock:
 		elif self.nextSeg == packet.seg: # expected seg!
 			self.nextSeg += 1
 			self.ackPacket(packet.seg, packet.end)
+			print "Acking packet " + str(packet.seg)
 			return packet
 		else:
-			print "Bad packet received! Seg: " + packet.seg + " expected: " + self.nextSeg + " ack: " + packet.ack
+			print "Bad packet received! Seg: " + str(packet.seg) + " expected: " + str(self.nextSeg) + " ack: " + str(packet.ack)
 		
 		return None

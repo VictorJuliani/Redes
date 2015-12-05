@@ -22,10 +22,10 @@ def main(argv):
 	sock = RSock(client, (host, port))
 	sock.enqueuePacket(filename)
 	print "Connecting to " + str(sock.addr) + " to ask for file " + filename
-	thread.start_new_thread(recvFile, (client,))
+	thread.start_new_thread(recvFile, (client, sock))
 	sock.start()
 
-def recvFile(client):
+def recvFile(client, sock):
 	data = []
 	# loop until all packages have been received
 	while True:
@@ -47,7 +47,7 @@ def recvFile(client):
 	# gathers all the data stored in the dictionary and stores it in 'full_data'
 	full_data = ''
 	for i in data:
-		full_data += data
+		full_data += i
 
 	# TODO create file
 	
