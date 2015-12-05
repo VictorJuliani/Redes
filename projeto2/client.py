@@ -19,12 +19,10 @@ def main(argv):
 	# create client socket
 	client = socket(AF_INET, SOCK_DGRAM)
 
-	addr = (host, port)
-
-	thread.start_new_thread(recvFile, (client,))
-	sock = RSock(client, addr)
+	sock = RSock(client, (host, port))
 	sock.enqueuePacket(filename)
-	print "Connecting to " + str(addr) + " to ask for file " + filename
+	print "Connecting to " + str(sock.addr) + " to ask for file " + filename
+	thread.start_new_thread(recvFile, (client,))
 	sock.start()
 
 def recvFile(client):
@@ -39,8 +37,9 @@ def recvFile(client):
 		if packet == None:
 			continue
 
-		# check if its the last package
-		if (packet.end == 1):
+		if (packet.err > 0): # file not found
+			continue # TODO implement me!
+		if (packet.end > 0): # check if its the last package
 			break
 		else: # store packet data in data list
 			data.append(packet.data)

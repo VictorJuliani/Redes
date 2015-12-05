@@ -16,24 +16,18 @@ class RSock:
 		self.addr = addr
 		self.buff = Queue() # packets to send
 		self.fail = Queue() # packets timed out to resend
-		self.waiting = Queue() # packets wating for ACK TODO on timeout add to fail queue
+		self.waiting = Queue(WINDOW_SIZE) # packets wating for ACK TODO on timeout add to fail queue
 
-		self.seg = random.randint(1,1000) # current packet
-		self.ack = self.seg # window base point
-		self.nextSeg = 0 # next expected packet
+		self.seg = 0 # current packet
+		self.ack = 0 # window base point
+		self.nextSeg = random.randint(1,1000) # next expected packet
 
 		self.lock = threading.Condition()
 
 	def start(self):
 		while not self.end:
 			packet = self.nextPacket()
-
-			if packet.seg > (self.ack + WINDOW_SIZE):
-				self.lock.acquire()
-				self.lock.wait() # block send for this packet is out of window			
-				self.lock.release()
-
-			waiting.put(packet) # add packet to waiting queue
+			waiting.put(packet) # add packet to waiting queue. it will block if waiting queue is full: all packets are sent & wait for acking
 			wrap = packet.wrap()
 			
 			print "Sending " + str(len(wrap)) + " bytes to " + str(self.addr)
@@ -46,35 +40,43 @@ class RSock:
 
 	def nextPacket(self):
 		if not self.fail.empty():
-			return self.fail.get(True) # not empty, so won't block...
+			return self.fail.get(False) # not empty, so won't block...
 
 		return self.buff.get(True) # block until another packet is added
 
 	def enqueuePacket(self, data):
-		seg = 0
+		packet = Packet(data)
 		if self.init:
+			packet.seg = self.seg
 			self.seg += 1
-			seg = self.seg
+		else:
+			packet.ack = self.nextSeg # con packet: seg = 0; ack = nextSeg
 
-		self.addAndWake(Packet(data, seg, 0))
+		self.addAndWake(packet)
 
 	def end(self):
+		packet = Packet('', self.seg, 0, 1)
 		self.seg += 1
-		self.addAndWake(Packet('', self.seg, 0, 1))
+		self.addAndWake(packet)
+
+	def err(self):
+		packet = Packet('', self.seg, 0, 0, 1)
+		self.seg += 1
+		self.addAndWake(packet)
 		
 	def ackPacket(self, ack, endAck):
-		self.addAndWake(Packet(data, 0, ack, endAck))
+		self.addAndWake(Packet('', 0, ack, endAck))
 
 	def addAndWake(self, packet):
 		self.buff.put(packet)
-		self.wake()
+		# self.wake()
 
-	def wake(self)
+	def wake(self):
 		try:
 			self.lock.notify()
 		except RuntimeError:
-			pass # wasn't locked...	
-
+			pass # wasn't locked...
+	
 	def receivePacket(self, data):
 		packet = Packet(data)
 		packet.unwrap()
@@ -83,21 +85,26 @@ class RSock:
 			print "Bad checksum received on seg: " + packet.seg + " ack: " + packet.ack
 			return None
 
-		# ack of filename or other acks
-		if (not self.init and packet.ack == 0) or (packet.ack > 0 and packet.ack == self.ack + 1): # expected ack!
+		if not self.init:
 			self.init = True
+			if packet.seg == 0: # con request
+				print "Connection request from " : + str(self.addr)
+				self.seg = packet.ack # set seg with nextSeg received in ack field
+				self.ack = packet.ack # intitialize ack with nextSeg
+				self.addAndWake(Packet('', self.nextSeg, 0, packet.end)) # ack with nextSeg expected on seg field
+			else: # con ack
+				self.seg = packet.seg # set seg with nextSeg of client
+				self.ack = packet.seg # intitialize ack with nextSeg
+		elif (packet.ack > 0 and self.ack == packet.ack): # expected ack!
 			self.ack += 1
 			print "Received ack " + str(ackno) + " on connection " + str(self.addr)
 
-			try:
-				waited = self.waiting.get()
+			if not waiting.empty():
+				waited = self.waiting.get(False) # don't block...
 				if waited.seg != packet.ack:
-					print "Removed wrong packet of waiting list. Ack: " + packet.ack + " Expected seg: " + waited.seg
-			except Empty:
+					print "Removed wrong packet of waiting list. Ack: " + packet.ack + " Expected seg: " + waited.seg # TODO FOR DEBUG ONLY! REMOVE
+			else: # TODO FOR DEBUG ONLY! REMOVE
 				print "Failed removing acked packet from waiting list!!!"
-
-			self.wake()	
-			return packet
 		elif self.nextSeg < packet.seg:
 			self.ackPacket(packet.seg, packet.end) # old packet received again, ACK might be lost.. send it again
 		elif self.nextSeg == packet.seg: # expected seg!
