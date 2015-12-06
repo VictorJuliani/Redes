@@ -31,15 +31,15 @@ class RSock:
 		self.ack = 0 # window base point
 		self.nextSeg = random.randint(1,1000) # next expected packet
 
-		# self.lock = threading.Condition()
-
 	def start(self):
 		while not self.end:
 			packet = self.buff.get(True) # block until another packet is added 
 			# only regular packets should be recent. 
 			# acks require the other side of the socket to be sent again, so we don't need to put on waiting queue
 			if packet.ack == 0 and packet.con == 0:
-				self.waiting.put(packet) # waiting queue will block when full: all packets are sent & wait for acking			
+				self.waiting.put(packet) # waiting queue will block when full: all packets are sent & wait for acking
+				if self.Timer == None:
+					self.playTimer()		
 				print "Sending seg " + str(packet.seg) + " to " + str(self.addr) # don't log ack/con for they are logged somewhere else		
 
 			wrap = packet.wrap()
@@ -56,6 +56,22 @@ class RSock:
 			if packet.end:
 				print "Ending connection to " + str(self.addr)
 				self.end = True
+
+	def playTimer(self):
+		if self.timer != None:
+			self.timer.cancel() # stop current timer
+
+		if self.waiting.empty() # nothing to wait for, start timer on start function when a new packet is sent then
+			self.timer = None
+			return
+
+		self.timer = Timer(ACK_TIMEOUT, timeout)
+		self.timer.start()
+
+	def timeout(self):
+		# expected ack didn't arrive... send window again!
+		while not self.waiting.empty():
+			self.buff.put(self.waiting.get())
 
 	def enqueuePacket(self, data):
 		packet = Packet(data)
@@ -108,11 +124,13 @@ class RSock:
 			print "Received expected ack " + str(packet.ack) + " on connection " + str(self.addr)
 
 			if not self.waiting.empty():
-				waited = self.waiting.get(False) # don't block...
+				waited = self.waiting.get() # don't block...
 				if waited.seg != packet.ack:
 					print "Removed wrong packet of waiting list. Expected seg: " + str(waited.seg) # TODO FOR DEBUG ONLY! REMOVE
 			else: # TODO FOR DEBUG ONLY! REMOVE
 				print "Failed removing acked packet from waiting list!!!"
+
+			self.playTimer() # ack received, start timer again
 		elif self.nextSeg < packet.seg:
 			self.ackPacket(packet.seg, packet.end) # old packet received again, ACK might be lost.. send it again
 			print "Duplicated packet... Sending ack again and ignoring"
