@@ -24,6 +24,7 @@ class RSock:
 		self.timer = None
 
 		self.lock = threading.Lock()
+		self.waitLock = threading.Lock()
 
 		# PQueue will sort packets by segnum, so when inserting in queue, packets will be like:
 		# Acks - segnum = 0
@@ -47,7 +48,9 @@ class RSock:
 			if packet.ack == 0 and (self.requesting or packet.con == 0):
 				self.lock.acquire(True) # wait for timeout function if needed
 				self.lock.release() # release it BEFORE put function or it will deadlock
+				self.waitLock.acquire(True)
 				self.waiting.put(packet) # block after timer!
+				self.waitLock.release()
 				print "Sending seg " + str(packet.seg) + " to " + str(self.addr) # don't log ack/con for they are logged somewhere else		
 
 			wrap = packet.wrap()
@@ -74,14 +77,15 @@ class RSock:
 		if self.timer != None:
 			self.timer.cancel() # stop current timer
 
-		if self.waiting.empty(): # nothing to wait for, start timer on start function when a new packet is sent then
-			self.timer = None
-			return
+#		if self.waiting.empty(): # nothing to wait for, start timer on start function when a new packet is sent then
+#			self.timer = None
+#			return
 		self.timer = threading.Timer(ACK_TIMEOUT, self.timeout)
 		self.timer.start()
 
 	def timeout(self):
-		print "Timed out! Enqueuing window again..."
+		if not self.waiting.empty():
+			print "Timed out! Enqueuing window again..."
 		self.lock.acquire(True) # block other thread
 		# expected ack didn't arrive... send window again!
 		
@@ -89,6 +93,8 @@ class RSock:
 			self.buff.put(self.waiting.get())
 			self.waiting.task_done()
 		self.lock.release()
+		if not self.end:
+			self.playTimer()
 
 	def enqueuePacket(self, data):
 		packet = Packet(data)
@@ -134,20 +140,22 @@ class RSock:
 		elif (packet.ack > 0): # ack packet
 			self.lock.acquire(True)
 
-			# TODO start put blocked -> enters this if, 
-			# get func unblocks start, put blocks again
-			# lock remains acquired and timeout cannot work
 			if not self.waiting.empty():
 				waited = self.waiting.get(False) # don't block...
+				self.lock.release()
 				if waited.ack == packet.ack: # expected ack!
 		 			print "Received expected ack " + str(packet.ack) + " on connection " + str(self.addr)
 		 		else:
+					# use another lock to avoid deadlocks with timeout!
+					self.waitLock.acquire(True)
 		 			self.waiting.put(packet) # add it again to queue...
+					self.waitLock.release()
 
 				if packet.end:
 					self.endCon()
 				self.playTimer() # ack received, start timer again
-			self.lock.release()
+			else:
+				self.lock.release()
 		elif packet.seg < self.nextSeg:
 			self.ackPacket(packet.seg, packet.end) # old packet received again, ACK might be lost.. send it again
 			print "Duplicated packet " + str(packet.seg) + ". Sending ack again and ignoring"
