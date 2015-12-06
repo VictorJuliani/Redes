@@ -27,6 +27,7 @@ def fileRequest(packet, sock):
 		filename = packet.data
 		fp = open(filename, 'r')
 		filedata = fp.read()
+		fp.close()
 		size = int(math.ceil(len(filedata)/PACKET_SIZE)) # how many chunks
 
 		for i in range(size):

@@ -32,12 +32,12 @@ def main(argv):
 	sock = RSock(client, (host, port), ploss, pcorr)
 	sock.enqueuePacket(filename)
 	print "Connecting to " + str(sock.addr) + " to ask for file " + filename
-	t = Thread(target=recvFile, args=(client, sock))
+	t = Thread(target=recvFile, args=(filename, client, sock))
 	t.start()
 	sock.start()
 	t.join()
 
-def recvFile(client, sock):
+def recvFile(filename, client, sock):
 	data = []
 	# loop until all packages have been received
 	while True:
@@ -49,7 +49,9 @@ def recvFile(client, sock):
 			continue
 
 		if (packet.err > 0): # file not found
-			continue # TODO implement me!
+			filename = raw_input("Server doesn't have this file! Choose another one: ")
+			sock.enqueuePacket(filename)
+			continue
 		if (packet.end > 0): # check if its the last package
 			print "EOF received, printing file:"
 			break
@@ -62,7 +64,9 @@ def recvFile(client, sock):
 	for i in data:
 		full_data += i
 
-	# TODO create file
+	f = open(filename, 'w+') # create or overwrite file
+	f.write(full_data)
+	f.close()
 	
 	print full_data
 	

@@ -7,7 +7,8 @@ from packet import Packet
 import binascii, random, threading
 
 WINDOW_SIZE = 10 # packets
-ACK_TIMEOUT = 30 # seconds TODO
+ACK_TIMEOUT = 30 # seconds
+END_ATTEMPTS = 3 # how many times should we try ending con until force closing?
 
 class RSock:
 	def __init__ (self, sock, addr, ploss, pcorr):
@@ -19,6 +20,7 @@ class RSock:
 		self.ploss = ploss
 		self.pcorr = pcorr
 
+		self.endAttempt = 0
 		self.timer = None
 
 		# PQueue will sort packets by segnum, so when inserting in queue, packets will be like:
@@ -27,7 +29,7 @@ class RSock:
 		# Unsent packets
 		# So ordering is guaranteed and ACKs should be sent immediately
 		self.buff = PQueue() # packets to send
-		self.waiting = PQueue(WINDOW_SIZE) # packets wating for ACK TODO on timeout add to fail queue
+		self.waiting = PQueue(WINDOW_SIZE) # packets wating for ACK
 
 		self.seg = 0 # current packet
 		self.ack = 0 # window base point
@@ -54,10 +56,12 @@ class RSock:
 			
 			self.sock.sendto(wrap, self.addr)
 
-			# TODO end packets/end acks CAN FAIL TOO. Use timeout to set end = True when end packet is sent
 			if packet.end:
-				print "Ending connection to " + str(self.addr)
-				self.end = True
+				if packet.ack or self.endAttempt >= END_ATTEMPTS: # end if we are acking end packet
+					print "Ending connection to " + str(self.addr)
+					self.end = True
+				else:
+					self.endAttempt += 1
 
 	def playTimer(self):
 		if self.timer != None:
@@ -125,6 +129,9 @@ class RSock:
 		elif (packet.ack > 0 and self.ack == packet.ack): # expected ack!
 			self.ack += 1
 			print "Received expected ack " + str(packet.ack) + " on connection " + str(self.addr)
+
+			if packet.end:
+				self.end = True # received ack
 
 			if not self.waiting.empty():
 				waited = self.waiting.get() # don't block...
