@@ -64,10 +64,10 @@ class RSock:
 			self.sock.sendto(wrap, self.addr)
 
 			if packet.end:
-				if packet.ack: #or self.endAttempt >= END_ATTEMPTS: # end if we are acking end packet
+				if packet.ack or self.endAttempt >= END_ATTEMPTS: # end if we are acking end packet
 					self.endCon()
 				else:
-					self.endAttempt += 1
+					self.endAttempt += 1 # should this avoid dced socket to be maintained
 
 	def endCon(self):
 		print "Ending connection to " + str(self.addr)
@@ -77,22 +77,20 @@ class RSock:
 		if self.timer != None:
 			self.timer.cancel() # stop current timer
 
-#		if self.waiting.empty(): # nothing to wait for, start timer on start function when a new packet is sent then
-#			self.timer = None
-#			return
 		self.timer = threading.Timer(ACK_TIMEOUT, self.timeout)
 		self.timer.start()
-
+	# TODO debug and find out if packets are really being duplicated!!!
 	def timeout(self):
 		if not self.waiting.empty():
 			print "Timed out! Enqueuing window again..."
-		self.lock.acquire(True) # block other thread
-		# expected ack didn't arrive... send window again!
+		else:
+			self.lock.acquire(True) # block other thread
+			# expected ack didn't arrive... send window again!
 		
-		while not self.waiting.empty():
-			self.buff.put(self.waiting.get())
-			self.waiting.task_done()
-		self.lock.release()
+			while not self.waiting.empty():
+				self.buff.put(self.waiting.get())
+				self.waiting.task_done()
+			self.lock.release()
 		if not self.end:
 			self.playTimer()
 
