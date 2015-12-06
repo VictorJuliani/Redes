@@ -40,11 +40,11 @@ class RSock:
 		while not self.end:
 			packet = self.buff.get(True) # block until another packet is added 
 			
+			if self.timer == None:
+				self.playTimer()	
 			# only regular packets should be recent. 
 			# acks require the other side of the socket to be sent again, so we don't need to put on waiting queue
 			if packet.ack == 0 and (self.requesting or packet.con == 0):
-				if self.timer == None:
-					self.playTimer()
 				self.lock.acquire(True) # wait for timeout function if needed
 				self.lock.release() # release it BEFORE put function or it will deadlock
 				self.waiting.put(packet) # block after timer!
@@ -76,8 +76,9 @@ class RSock:
 
 		if self.waiting.empty(): # nothing to wait for, start timer on start function when a new packet is sent then
 			self.timer = None
+			print "Stop timer"
 			return
-
+		print "New timer"
 		self.timer = threading.Timer(ACK_TIMEOUT, self.timeout)
 		self.timer.start()
 
@@ -114,11 +115,6 @@ class RSock:
 		
 	def ackPacket(self, ack, endAck):
 		self.buff.put(Packet('', 0, ack, endAck))
-
-	def addWaitingBlocking(self, packet):
-		self.lock.acquire(True) # block other thread
-		self.waiting.put(packet)
-		self.lock.release()
 	
 	def receivePacket(self, data):
 		packet = Packet(data)
@@ -138,6 +134,7 @@ class RSock:
 			else:
 				print "Connection established!"
 		elif (packet.ack > 0): # ack packet
+			self.lock.acquire(True) # lock here!
 			waited = self.waiting.get() # don't block...
 			if waited != None:
 				if waited.ack == packet.ack: # expected ack!
@@ -147,7 +144,7 @@ class RSock:
 
 			if packet.end:
 				self.endCon()
-
+			self.lock.release()
 			self.playTimer() # ack received, start timer again
 		elif packet.seg < self.nextSeg:
 			self.ackPacket(packet.seg, packet.end) # old packet received again, ACK might be lost.. send it again
