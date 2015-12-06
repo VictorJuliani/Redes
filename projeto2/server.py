@@ -6,7 +6,7 @@ from reliable_sock import RSock
 from packet import Packet
 import thread, sys, os.path, math, random
 
-PACKET_SIZE = 49.0 # bytes
+PACKET_SIZE = 10.0 # bytes
 
 def newCon(data, addr):
 	sock = RSock(server, addr, ploss, pcorr)
@@ -30,12 +30,12 @@ def fileRequest(packet, sock):
 		fp.close()
 		size = int(math.ceil(len(filedata)/PACKET_SIZE)) # how many chunks
 
+		print "File request " + filename + " from " + str(addr)
 		for i in range(size):
 			start = int(i * PACKET_SIZE)
 			end = int((i+1) * PACKET_SIZE)
 			sock.enqueuePacket(filedata[start:end])
 
-		print "File request " + filename + " from " + str(addr)
 		sock.endPacket() # enqueue end packet after all file packets
 
 # init
