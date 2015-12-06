@@ -28,7 +28,6 @@ def main(argv):
 	sock.start()
 	t.join()
 
-
 def recvFile(client, sock):
 	data = []
 	# loop until all packages have been received
