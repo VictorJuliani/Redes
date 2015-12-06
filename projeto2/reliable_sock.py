@@ -76,9 +76,7 @@ class RSock:
 
 		if self.waiting.empty(): # nothing to wait for, start timer on start function when a new packet is sent then
 			self.timer = None
-			print "Stop timer"
 			return
-		print "New timer"
 		self.timer = threading.Timer(ACK_TIMEOUT, self.timeout)
 		self.timer.start()
 
@@ -134,18 +132,18 @@ class RSock:
 			else:
 				print "Connection established!"
 		elif (packet.ack > 0): # ack packet
-			self.lock.acquire(True) # lock here!
-			waited = self.waiting.get() # don't block...
-			if waited != None:
+			self.lock.acquire(True)
+			if not self.waiting.empty():
+				waited = self.waiting.get(False) # don't block...
 				if waited.ack == packet.ack: # expected ack!
 		 			print "Received expected ack " + str(packet.ack) + " on connection " + str(self.addr)
 		 		else:
 		 			self.waiting.put(packet) # add it again to queue...
 
-			if packet.end:
-				self.endCon()
+				if packet.end:
+					self.endCon()
+				self.playTimer() # ack received, start timer again
 			self.lock.release()
-			self.playTimer() # ack received, start timer again
 		elif packet.seg < self.nextSeg:
 			self.ackPacket(packet.seg, packet.end) # old packet received again, ACK might be lost.. send it again
 			print "Duplicated packet " + str(packet.seg) + ". Sending ack again and ignoring"
