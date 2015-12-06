@@ -133,6 +133,10 @@ class RSock:
 				print "Connection established!"
 		elif (packet.ack > 0): # ack packet
 			self.lock.acquire(True)
+
+			# TODO start put blocked -> enters this if, 
+			# get func unblocks start, put blocks again
+			# lock remains acquired and timeout cannot work
 			if not self.waiting.empty():
 				waited = self.waiting.get(False) # don't block...
 				if waited.ack == packet.ack: # expected ack!

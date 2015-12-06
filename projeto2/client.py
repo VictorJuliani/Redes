@@ -16,12 +16,12 @@ def main(argv):
 		if len(argv) > 3:
 			ploss = int(argv[4])
 		else:
-			ploss = random.randint(1, 20)
+			ploss = random.randint(1, 40)
 
 		if len(argv) > 4:
 			pcorr = int(argv[5])
 		else:
-			pcorr = random.randint(1, 20)
+			pcorr = random.randint(1, 40)
 	except IndexError:
 		print 'Usage: python client.py port host filename [prob. loss] [prob. corr]'
 		sys.exit(-1)

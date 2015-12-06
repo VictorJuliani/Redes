@@ -44,11 +44,11 @@ try:
 	if len(sys.argv) > 2:
 		ploss = int(sys.argv[2])
 	else:
-		ploss = random.randint(1, 20)
+		ploss = random.randint(1, 40)
 	if len(sys.argv) > 3:
 		pcorr = int(sys.argv[3])
 	else:
-		pcorr = random.randint(1, 20)
+		pcorr = random.randint(1, 40)
 except IndexError:
 	print 'Usage: python server.py port [prob. loss] [prob. corr]'
 	sys.exit(-1)
