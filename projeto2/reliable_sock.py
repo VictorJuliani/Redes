@@ -58,10 +58,13 @@ class RSock:
 
 			if packet.end:
 				if packet.ack or self.endAttempt >= END_ATTEMPTS: # end if we are acking end packet
-					print "Ending connection to " + str(self.addr)
-					self.end = True
+					self.endCon()
 				else:
 					self.endAttempt += 1
+
+	def endCon(self):
+		print "Ending connection to " + str(self.addr)
+		self.end = True	
 
 	def playTimer(self):
 		if self.timer != None:
@@ -131,7 +134,7 @@ class RSock:
 			print "Received expected ack " + str(packet.ack) + " on connection " + str(self.addr)
 
 			if packet.end:
-				self.end = True # received ack
+				self.endCon()
 
 			if not self.waiting.empty():
 				waited = self.waiting.get() # don't block...
