@@ -10,12 +10,14 @@ WINDOW_SIZE = 10 # packets
 ACK_TIMEOUT = 30 # seconds TODO
 
 class RSock:
-	def __init__ (self, sock, addr):
+	def __init__ (self, sock, addr, ploss, pcorr):
 		self.init = False
 		self.end = False
 		self.requesting = False
 		self.sock = sock
 		self.addr = addr
+		self.ploss = ploss
+		self.pcorr = pcorr
 
 		# PQueue will sort packets by segnum, so when inserting in queue, packets will be like:
 		# Acks - segnum = 0
@@ -39,13 +41,16 @@ class RSock:
 			if packet.ack == 0 and packet.con == 0:
 				self.waiting.put(packet) # waiting queue will block when full: all packets are sent & wait for acking			
 				print "Sending seg " + str(packet.seg) + " to " + str(self.addr) # don't log ack/con for they are logged somewhere else		
-	
+
 			wrap = packet.wrap()
+
+			# inform Queue we're done with the packet we got
+			self.buff.task_done()
+
+			if random.randint(1, 100) < self.ploss:
+				continue # simulate lost packet
 			
 			self.sock.sendto(wrap, self.addr)
-
-			# inform Queue we're done with the element we got
-			self.buff.task_done()
 
 			# TODO end packets/end acks CAN FAIL TOO. Use timeout to set end = True when end packet is sent
 			if packet.end:
@@ -86,7 +91,7 @@ class RSock:
 		packet = Packet(data)
 		packet.unwrap()
 
-		if not packet.validChecksum(): # do not receive broken packets
+		if not packet.validChecksum() or random.randint(1, 100) < self.pcorr: # do not receive broken packets or simulate a broken packet
 			print "Bad checksum received on seg: " + str(packet.seg) + " ack: " + str(packet.ack)
 			return None
 

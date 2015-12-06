@@ -4,7 +4,7 @@
 from socket import socket, AF_INET, SOCK_DGRAM
 from packet import Packet
 from reliable_sock import RSock
-import sys
+import sys, random
 from threading import Thread
 
 def main(argv):
@@ -12,15 +12,24 @@ def main(argv):
 		port = int(argv[1])
 		host = argv[2]
 		filename = argv[3]
-		# TODO PL & PC (prob. loss & prob. corr.)
+
+		if len(argv > 3):
+			ploss = int(argv[4])
+		else:
+			ploss = random.randint(1, 20)
+
+		if len(argv > 4):
+			pcorr = int(argv[5])
+		else:
+			pcorr = random.randint(1, 20)
 	except IndexError:
-		print 'Usage: python client.py port host filename'
+		print 'Usage: python client.py port host filename [prob. loss] [prob. corr]'
 		sys.exit(-1)
 
 	# create client socket
 	client = socket(AF_INET, SOCK_DGRAM)
 
-	sock = RSock(client, (host, port))
+	sock = RSock(client, (host, port), ploss, pcorr)
 	sock.enqueuePacket(filename)
 	print "Connecting to " + str(sock.addr) + " to ask for file " + filename
 	t = Thread(target=recvFile, args=(client, sock))
