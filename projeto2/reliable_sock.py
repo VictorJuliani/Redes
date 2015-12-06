@@ -61,7 +61,7 @@ class RSock:
 			self.sock.sendto(wrap, self.addr)
 
 			if packet.end:
-				if packet.ack #or self.endAttempt >= END_ATTEMPTS: # end if we are acking end packet
+				if packet.ack: #or self.endAttempt >= END_ATTEMPTS: # end if we are acking end packet
 					self.endCon()
 				else:
 					self.endAttempt += 1
@@ -82,11 +82,10 @@ class RSock:
 		self.timer.start()
 
 	def timeout(self):
+		print "Timed out! Enqueuing window again..."
 		self.lock.acquire(True) # block other thread
 		# expected ack didn't arrive... send window again!
-		print "Timed out! Enqueuing window again..."
-		if not self.waiting.empty():
-			"No packets to enqueue"
+		
 		while not self.waiting.empty():
 			self.buff.put(self.waiting.get())
 			self.waiting.task_done()
