@@ -19,6 +19,8 @@ class RSock:
 		self.ploss = ploss
 		self.pcorr = pcorr
 
+		self.timer = None
+
 		# PQueue will sort packets by segnum, so when inserting in queue, packets will be like:
 		# Acks - segnum = 0
 		# Failed packets (for their segnum is securely < unset packets)
@@ -38,7 +40,7 @@ class RSock:
 			# acks require the other side of the socket to be sent again, so we don't need to put on waiting queue
 			if packet.ack == 0 and packet.con == 0:
 				self.waiting.put(packet) # waiting queue will block when full: all packets are sent & wait for acking
-				if self.Timer == None:
+				if self.timer == None:
 					self.playTimer()		
 				print "Sending seg " + str(packet.seg) + " to " + str(self.addr) # don't log ack/con for they are logged somewhere else		
 
@@ -61,15 +63,16 @@ class RSock:
 		if self.timer != None:
 			self.timer.cancel() # stop current timer
 
-		if self.waiting.empty() # nothing to wait for, start timer on start function when a new packet is sent then
+		if self.waiting.empty(): # nothing to wait for, start timer on start function when a new packet is sent then
 			self.timer = None
 			return
 
-		self.timer = Timer(ACK_TIMEOUT, timeout)
+		self.timer = threading.Timer(ACK_TIMEOUT, self.timeout)
 		self.timer.start()
 
 	def timeout(self):
 		# expected ack didn't arrive... send window again!
+		print "Timed out! Enqueuing window again..."
 		while not self.waiting.empty():
 			self.buff.put(self.waiting.get())
 

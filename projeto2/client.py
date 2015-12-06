@@ -13,12 +13,12 @@ def main(argv):
 		host = argv[2]
 		filename = argv[3]
 
-		if len(argv > 3):
+		if len(argv) > 3:
 			ploss = int(argv[4])
 		else:
 			ploss = random.randint(1, 20)
 
-		if len(argv > 4):
+		if len(argv) > 4:
 			pcorr = int(argv[5])
 		else:
 			pcorr = random.randint(1, 20)
