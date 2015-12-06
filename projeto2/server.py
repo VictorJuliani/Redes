@@ -6,7 +6,7 @@ from reliable_sock import RSock
 from packet import Packet
 import thread, sys, os.path, math
 
-PACKET_SIZE = 10.0 # bytes
+PACKET_SIZE = 49.0 # bytes
 
 def newCon(data, addr):
 	sock = RSock(server, addr)

@@ -4,7 +4,8 @@
 from socket import socket, AF_INET, SOCK_DGRAM
 from packet import Packet
 from reliable_sock import RSock
-import sys, thread
+import sys
+from threading import Thread
 
 def main(argv):
 	try:
@@ -22,8 +23,11 @@ def main(argv):
 	sock = RSock(client, (host, port))
 	sock.enqueuePacket(filename)
 	print "Connecting to " + str(sock.addr) + " to ask for file " + filename
-	thread.start_new_thread(recvFile, (client, sock))
+	t = Thread(target=recvFile, args=(client, sock))
+	t.start()
 	sock.start()
+	t.join()
+
 
 def recvFile(client, sock):
 	data = []
@@ -31,7 +35,6 @@ def recvFile(client, sock):
 	while True:
 		# receives the package and stores in 'reply'.
 		reply, addr = client.recvfrom(1024)	
-		print "Received " + str(len(reply)) + " bytes from server"
 		packet = sock.receivePacket(reply)
 
 		if packet == None:
@@ -40,8 +43,10 @@ def recvFile(client, sock):
 		if (packet.err > 0): # file not found
 			continue # TODO implement me!
 		if (packet.end > 0): # check if its the last package
+			print "EOF received, printing file:"
 			break
 		else: # store packet data in data list
+			print "Appending " + str(len(packet.data)) + " bytes received from server"
 			data.append(packet.data)
 
 	# gathers all the data stored in the dictionary and stores it in 'full_data'

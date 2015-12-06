@@ -24,7 +24,7 @@ class Packet:
 	def __cmp__(self, other):
 		if other == None:
 			return -1
-    	return cmp(self.seg, other.seg)
+    		return cmp(self.seg, other.seg)
 				
 	# build packet string
 	def wrap(self):
