@@ -41,18 +41,19 @@ def fileRequest(packet, sock):
 # init
 try:
 	port = int(sys.argv[1])
-	if len(sys.argv) > 3:
-		cwnd = int(sys.argv[3])
+
+	if len(sys.argv) > 2:
+		cwnd = int(sys.argv[2])
 	else:
 		cwnd = 0
 
-	if len(sys.argv) > 4:
-		ploss = int(sys.argv[4])
+	if len(sys.argv) > 3:
+		ploss = int(sys.argv[3])
 	else:
 		ploss = random.randint(1, 40)
 
-	if len(sys.argv) > 5:
-		pcorr = int(sys.argv[5])
+	if len(sys.argv) > 4:
+		pcorr = int(sys.argv[4])
 	else:
 		pcorr = random.randint(1, 40)
 except IndexError:
@@ -64,7 +65,7 @@ host = ''
 server = socket(AF_INET, SOCK_DGRAM)
 server.bind((host, port))
 
-print "Server started"
+print "Server Started"
 
 clients = {}
 
