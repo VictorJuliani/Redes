@@ -64,7 +64,7 @@ def errPacket(self):
 ``` python
 WINDOW_SIZE = 10 # packets
 ACK_TIMEOUT = 1 # seconds
-END_ATTEMPTS = 3 # how many times should we try ending con until force closing?
+ATTEMPT = 5 # how many times should we try ending con until force closing?
 ```
 (*server:9*).
 ``` python
@@ -376,9 +376,7 @@ Finalmente, o pacote (ou None) é retornado para a *thread* que chamou a funçã
 
 		Server:
 
-	![alt text](https://raw.githubusercontent.com/VictorJuliani/Redes/master/projeto2/Pictures/server-10-0-20.jpg) 
-	
-	![alt text](https://raw.githubusercontent.com/VictorJuliani/Redes/master/projeto2/Pictures/server-10-0-20-1.jpg)  <br> <br>
+	![alt text](https://raw.githubusercontent.com/VictorJuliani/Redes/master/projeto2/Pictures/server-10-20-0.jpg)   <br> <br>
 
 * Teste realizado com porcentagem de pacotes perdidos de 15% e corrompidos 15%: <br>
 
@@ -393,7 +391,7 @@ Finalmente, o pacote (ou None) é retornado para a *thread* que chamou a funçã
 
 ### Dificuldades encontradas
 
-		A primeira dificuldade foi perceber que a melhor forma de projetar a confiabilidade seria através de um modelo genérico (*reliable_sock*) para o servidor e para o cliente. Implementamos no início toda a lógica de controle nos scripts de server e cliente. Isso foi solucionado criando o *reliable_sock* para a comunicação.
-		A segunda dificuldade foi projetar o bloqueio da *thread* de envio. Havia a dúvida entre o uso de um *deque* (fila não bloqueante) e a *Queue*. Depois de algumas inversões entre elas, foi optado pelo uso da *Queue* por nao necessitar de *locks* adicionais no momento em que foi possível executar a conexão, transferência de dados e *ACKs* e finalização da conexão coom sucesso sem o uso de um *timeout* ou de falhas de envio ou corrupção.
-		Finalmente, mas não menos trabalhoso (pelo contrário!) a implementação das falhas e do *timeout* levantou uma série de falhas no *sock*, especialmente no que se refere ao bloqueio das execuções das *threads* para evitar loops infinitos ou *deadlocks*. Através de *debugs* para identificar onde os *deadlocks* e inconsistências aconteciam , o script foi ajustado gradualmente até que chegasse ao ponto atual: funcionando! O *sock* do emissor nunca fica enviando pacotes para um cliente já desconectado e ambos os *socks* não ficam travados em nenhum ponto da execução. Um *timeout* curto foi usado para acelerar os testes.
+A primeira dificuldade foi perceber que a melhor forma de projetar a confiabilidade seria através de um modelo genérico (*reliable_sock*) para o servidor e para o cliente. Implementamos no início toda a lógica de controle nos scripts de server e cliente. Isso foi solucionado criando o *reliable_sock* para a comunicação.
+A segunda dificuldade foi projetar o bloqueio da *thread* de envio. Havia a dúvida entre o uso de um *deque* (fila não bloqueante) e a *Queue*. Depois de algumas inversões entre elas, foi optado pelo uso da *Queue* por nao necessitar de *locks* adicionais no momento em que foi possível executar a conexão, transferência de dados e *ACKs* e finalização da conexão coom sucesso sem o uso de um *timeout* ou de falhas de envio ou corrupção.
+Finalmente, mas não menos trabalhoso (pelo contrário!) a implementação das falhas e do *timeout* levantou uma série de falhas no *sock*, especialmente no que se refere ao bloqueio das execuções das *threads* para evitar loops infinitos ou *deadlocks*. Através de *debugs* para identificar onde os *deadlocks* e inconsistências aconteciam , o script foi ajustado gradualmente até que chegasse ao ponto atual: funcionando! O *sock* do emissor nunca fica enviando pacotes para um cliente já desconectado e ambos os *socks* não ficam travados em nenhum ponto da execução. Um *timeout* curto foi usado para acelerar os testes.
 
