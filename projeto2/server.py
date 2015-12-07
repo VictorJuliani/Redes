@@ -9,7 +9,7 @@ import thread, sys, os.path, math, random
 PACKET_SIZE = 10.0 # bytes
 
 def newCon(data, addr):
-	sock = RSock(server, addr, ploss, pcorr)
+	sock = RSock(server, addr, cwnd, ploss, pcorr)
 	packet = sock.receivePacket(data)
 
 	if packet == None: # bad packet...
@@ -41,16 +41,22 @@ def fileRequest(packet, sock):
 # init
 try:
 	port = int(sys.argv[1])
-	if len(sys.argv) > 2:
-		ploss = int(sys.argv[2])
+	if len(sys.argv) > 3:
+		cwnd = int(sys.argv[3])
+	else:
+		cwnd = 0
+
+	if len(sys.argv) > 4:
+		ploss = int(sys.argv[4])
 	else:
 		ploss = random.randint(1, 40)
-	if len(sys.argv) > 3:
-		pcorr = int(sys.argv[3])
+
+	if len(sys.argv) > 5:
+		pcorr = int(sys.argv[5])
 	else:
 		pcorr = random.randint(1, 40)
 except IndexError:
-	print 'Usage: python server.py port [prob. loss] [prob. corr]'
+	print 'Usage: python server.py port [cwnd] [prob. loss] [prob. corr]'
 	sys.exit(-1)
 
 host = ''
