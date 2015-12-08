@@ -24,6 +24,7 @@ class RSock:
 		if self.cwnd <= 0:
 			self.cwnd = WINDOW_SIZE
 
+		self.lastBadAck = 0
 		self.dupAck = 0
 		self.ssthresh = 0
 
@@ -94,7 +95,7 @@ class RSock:
 	def timeout(self):
 		if not self.end and not self.waiting.empty():
 			print "Timed out! Enqueuing window again..."
-		
+
 		self.lock.acquire(True) # block other thread
 		self.attempt += 1 # should this avoid dced socket to be maintained
 
@@ -158,19 +159,31 @@ class RSock:
 		elif (packet.ack > 0): # ack packet
 			self.lock.acquire(True)
 
-			if packet.ack == self.ack: # expected ack!
-				self.ack += 1
+			if packet.ack >= self.ack:
+				self.dupAck = 0 # reset dup ack counting
+				self.lastBadAck = 0
+				self.ack += (packet.ack - self.ack)
 				self.playTimer() # ack received, start timer again
 		 		print "Received expected ack " + str(packet.ack) + " on connection " + str(self.addr)
 
 				if packet.end: # ack for end packet received
 					self.endCon()
+			elif packet.ack == self.lastBadAck:
+				print "Increasing bad ack"
+				self.dupAck += 1
+				if (self.dupAck == 3):
+					print "3x dup ack"
+			else:
+				print "New bad ack"
+				self.lastBadAck = packet.ack
+				self.dupAck = 1
+
 			self.lock.release()
 		elif packet.seg < self.nextSeg:
 			self.ackPacket(packet.end) # old packet received again, ACK might be lost.. send it again
 			print "Duplicated packet " + str(packet.seg) + ". Sending ack again and ignoring"
-		else packet.seg > self.nextSeg:
-			self.ackPacket(packet.end) # old packet received again, ACK might be lost.. send it again
+		elif packet.seg > self.nextSeg:
+			self.ackPacket(packet.end)
 		elif self.nextSeg == packet.seg: # expected seg!
 			self.nextSeg += 1
 			self.ackPacket(packet.end)
