@@ -121,17 +121,13 @@ class RSock:
 
 	# TCP RENO
 	def increaseWindow(self):
-		self.lock.acquire(True)
 		if self.ssthresh == 0 or self.ssthresh > self.cwnd: # slow start
 			self.cwnd *= 2 # duplicate window size
 		else:
 			self.cwnd += 1 # congestion avoid
 		self.updateWindow()
-		self.lock.release()
 
 	def decreaseWindow(self):
-		self.lock.acquire(True)
-
 		# fast retransmit
 		if self.timer != None:
 			self.timer.cancel() # stop current timer
@@ -140,7 +136,6 @@ class RSock:
 		self.cwnd /= 2
 		self.ssthresh = self.cwnd
 		self.updateWindow()
-		self.lock.release()
 
 	def updateWindow(self):
 		tmp = PQueue(self.cwnd)
@@ -151,7 +146,6 @@ class RSock:
 				tmp.put(packet)
 			self.waiting.task_done()
 
-		# shouldn't happen due to fast retransmit
 		while not self.waiting.empty(): # add remaining packets to buff
 			packet = self.waiting.get()
 			if packet.seg >= self.ack: # no need to resend acked packets...
@@ -222,18 +216,16 @@ class RSock:
 
 				if packet.end: # ack for end packet received
 					self.endCon()
-				self.lock.release()
 			elif packet.ack == self.lastBadAck:
 				self.dupAck += 1
 				if (self.dupAck == 3):
 					print "Duplicate ACKs received. Doing fast retransmit and resizing window."
-					self.lock.release()
 					self.decreaseWindow()
 			else:
 				self.lastBadAck = packet.ack
 				self.dupAck = 1
-				self.lock.release()
 
+			self.lock.release()
 		elif packet.seg < self.nextSeg:
 			self.ackPacket() # old packet received again, ACK might be lost.. send it again
 			print "Duplicate packet " + str(packet.seg) + ". Sending ack again and ignoring"
