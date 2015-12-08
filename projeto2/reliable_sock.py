@@ -40,7 +40,7 @@ class RSock:
 		# Unsent packets
 		# So ordering is guaranteed and ACKs should be sent immediately
 		self.buff = PQueue() # packets to send
-		self.waiting = PQueue(cwnd) # packets wating for ACK
+		self.waiting = PQueue(self.cwnd) # packets wating for ACK
 
 		self.seg = 0 # current packet
 		self.ack = 0 # last valid ack
@@ -50,14 +50,14 @@ class RSock:
 		while not self.end:
 			packet = self.buff.get(True) # block until another packet is added
 			if self.timer == None:
-				self.playTimer()	
-			# only regular packets should be recent. 
-			# acks require the other side of the socket to be sent again, so we don't need to put on waiting queue
+				self.playTimer()
 
 			if packet.seg > 0 and packet.seg < self.ack: # don't send acked packets again...
 				self.buff.task_done()
-				continue
+				continue	
 
+			# only regular packets should be resent. 
+			# acks require the other side of the socket to be sent again, so we don't need to put on waiting queue
 			if packet.ack == 0 and (self.requesting or packet.con == 0):
 				self.lock.acquire(True) # wait for timeout function if needed
 				self.lock.release() # release it BEFORE put function or it will deadlock
@@ -68,7 +68,7 @@ class RSock:
 			self.buff.task_done()
 			
 			if random.randint(1, 100) < self.ploss:
-				print "Simulating delayed packet"
+				print "Simulating delayed packet segnum " + str(packet.seg) + " acknum " + str(packet.acknum)
 				continue # simulate lost packet
 	
 			self.sock.sendto(packet.wrap(), self.addr)
@@ -110,6 +110,9 @@ class RSock:
 
 		self.lock.release()
 
+		if self.attempt >= ATTEMPT:
+			self.end = True
+
 		if not self.end:
 			self.playTimer()
 
@@ -141,6 +144,11 @@ class RSock:
 		self.updateWindow()
 
 	def updateWindow(self):
+		if self.cwnd == self.waiting.maxsize:
+			return
+
+		print "Resizing cwnd"
+
 		tmp = PQueue(self.cwnd)
 
 		for i in range(min(self.waiting.qsize(), self.cwnd)): # move packets from waiting to tmp until tmp is full or waiting is empty
@@ -174,8 +182,8 @@ class RSock:
 		self.seg += 1
 		self.buff.put(packet)
 		
-	def ackPacket(self, endAck = 0):
-		self.buff.put(Packet('', 0, self.nextSeg, endAck))
+	def ackPacket(self, endAck):
+		self.buff.put(Packet('', 0, self.nextSeg, int(endAck)))
 	
 	def receivePacket(self, data):
 		packet = Packet(data)
@@ -225,14 +233,14 @@ class RSock:
 
 			self.lock.release()
 		elif packet.seg < self.nextSeg:
-			self.ackPacket() # old packet received again, ACK might be lost.. send it again
-			print "Duplicate packet " + str(packet.seg) + ". Sending ack again and ignoring"
+			self.ackPacket(self.end) # old packet received again, ACK might be lost.. send it again
+			print "Duplicate packet " + str(packet.seg) + ". Sending ack " + str(self.nextSeg) + " again and ignoring"
 		elif packet.seg > self.nextSeg:
-			self.ackPacket()
+			self.ackPacket(self.end)
 		elif self.nextSeg == packet.seg: # expected seg!
 			self.nextSeg += 1
 			self.ackPacket(packet.end)
-			print "Acking packet " + str(packet.seg)
+			print "Acking for packet " + str(self.nextSeg)
 			return packet
 		
 		return None
