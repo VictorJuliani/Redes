@@ -156,7 +156,7 @@ class RSock:
 		else:
 			size = self.waiting.qsize()
 
-		for i in range(size)
+		for i in range(size):
 			packet = self.waiting.get(False)
 			if packet.seg >= self.ack: # no need to resend acked packets...
 				tmp.put(packet)
