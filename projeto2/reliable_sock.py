@@ -68,7 +68,7 @@ class RSock:
 			self.buff.task_done()
 			
 			if random.randint(1, 100) < self.ploss:
-				print "Simulating delayed packet segnum " + str(packet.seg) + " acknum " + str(packet.acknum)
+				print "Simulating delayed packet segnum " + str(packet.seg) + " acknum " + str(packet.ack)
 				continue # simulate lost packet
 	
 			self.sock.sendto(packet.wrap(), self.addr)
