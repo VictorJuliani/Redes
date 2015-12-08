@@ -24,6 +24,7 @@ class RSock:
 		if self.cwnd <= 0:
 			self.cwnd = WINDOW_SIZE
 
+		self.startCwnd = self.cwnd
 		self.lastBadAck = 0
 		self.dupAck = 0
 		self.ssthresh = 0
@@ -89,10 +90,10 @@ class RSock:
 		if self.timer != None:
 			self.timer.cancel() # stop current timer
 
-		self.timer = threading.Timer(ACK_TIMEOUT, self.timeout)
+		self.timer = threading.Timer(ACK_TIMEOUT, self.timeout, args=[True])
 		self.timer.start()
 
-	def timeout(self):
+	def timeout(self, slowStart):
 		if not self.end and not self.waiting.empty():
 			print "Timed out! Enqueuing window again..."
 
@@ -107,10 +108,58 @@ class RSock:
 				self.buff.put(packet)
 			self.waiting.task_done()
 		
+		# TCP RENO
+		if slowStart:
+			self.cwnd = self.startCwnd
+			self.ssthresh = 0 # slow-start
+			self.updateWindow()
+
 		self.lock.release()
 
 		if not self.end:
 			self.playTimer()
+
+	# TCP RENO
+	def increaseWindow(self):
+		self.lock.acquire(True)
+		if self.ssthresh == 0 or self.ssthresh > self.cwnd: # slow start
+			self.cwnd *= 2 # duplicate window size
+		else:
+			self.cwnd += 1 # congestion avoid
+		self.updateWindow()
+		self.lock.release()
+
+	def decreaseWindow(self):
+		self.lock.acquire(True)
+
+		# fast retransmit
+		if self.timer != None:
+			self.timer.cancel() # stop current timer
+		self.timeout(False) # do window retransmition
+
+		self.cwnd /= 2
+		self.ssthresh = self.cwnd
+		self.updateWindow()
+		self.lock.release()
+
+	def updateWindow(self):
+		tmp = PQueue(self.cwnd)
+
+		for i in range(min(self.waiting.qsize(), self.cwnd)) # move packets from waiting to tmp until tmp is full or waiting is empty
+			packet = self.waiting.get(False)
+			if packet.seg >= self.ack: # no need to resend acked packets...
+				tmp.put(packet)
+			self.waiting.task_done()
+
+		# shouldn't happen due to fast retransmit
+		while not self.waiting.empty(): # add remaining packets to buff
+			packet = self.waiting.get()
+			if packet.seg >= self.ack: # no need to resend acked packets...
+				self.buff.put(packet)
+			self.waiting.task_done()
+
+		self.waiting = tmp # this is required for it's not possible to change the Queue's maxsize :(
+
 
 	def enqueuePacket(self, data):
 		packet = Packet(data)
@@ -166,18 +215,19 @@ class RSock:
 				self.lastBadAck = 0
 				self.ack += (packet.ack - self.ack)
 
+				self.increaseWindow()
+
 				self.playTimer() # ack received, start timer again
 		 		print "Received expected ack " + str(packet.ack) + " on connection " + str(self.addr)
 
 				if packet.end: # ack for end packet received
 					self.endCon()
 			elif packet.ack == self.lastBadAck:
-				print "Increasing bad ack"
 				self.dupAck += 1
 				if (self.dupAck == 3):
-					print "3x dup ack"
+					print "Duplicate ACKs received. Doing fast retransmit and resizing window."
+					self.decreaseWindow()
 			else:
-				print "New bad ack"
 				self.lastBadAck = packet.ack
 				self.dupAck = 1
 
