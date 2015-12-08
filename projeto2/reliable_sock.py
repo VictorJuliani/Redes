@@ -145,7 +145,7 @@ class RSock:
 	def updateWindow(self):
 		tmp = PQueue(self.cwnd)
 
-		for i in range(min(self.waiting.qsize(), self.cwnd)) # move packets from waiting to tmp until tmp is full or waiting is empty
+		for i in range(min(self.waiting.qsize(), self.cwnd)): # move packets from waiting to tmp until tmp is full or waiting is empty
 			packet = self.waiting.get(False)
 			if packet.seg >= self.ack: # no need to resend acked packets...
 				tmp.put(packet)
@@ -222,19 +222,21 @@ class RSock:
 
 				if packet.end: # ack for end packet received
 					self.endCon()
+				self.lock.release()
 			elif packet.ack == self.lastBadAck:
 				self.dupAck += 1
 				if (self.dupAck == 3):
 					print "Duplicate ACKs received. Doing fast retransmit and resizing window."
+					self.lock.release()
 					self.decreaseWindow()
 			else:
 				self.lastBadAck = packet.ack
 				self.dupAck = 1
+				self.lock.release()
 
-			self.lock.release()
 		elif packet.seg < self.nextSeg:
 			self.ackPacket() # old packet received again, ACK might be lost.. send it again
-			print "Duplicated packet " + str(packet.seg) + ". Sending ack again and ignoring"
+			print "Duplicate packet " + str(packet.seg) + ". Sending ack again and ignoring"
 		elif packet.seg > self.nextSeg:
 			self.ackPacket()
 		elif self.nextSeg == packet.seg: # expected seg!
