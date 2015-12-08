@@ -90,34 +90,36 @@ class RSock:
 		if self.timer != None:
 			self.timer.cancel() # stop current timer
 
-		self.timer = threading.Timer(ACK_TIMEOUT, self.timeout, args=[True])
+		self.timer = threading.Timer(ACK_TIMEOUT, self.timeout)
 		self.timer.start()
 
-	def timeout(self, slowStart):
+	def timeout(self):
 		if not self.end and not self.waiting.empty():
 			print "Timed out! Enqueuing window again..."
 
 		self.lock.acquire(True) # block other thread
 		self.attempt += 1 # should this avoid dced socket to be maintained
 
-		# expected ack didn't arrive... send window again!
-		
-		while not self.waiting.empty():
-			packet = self.waiting.get()
-			if packet.seg >= self.ack: # no need to resend acked packets...
-				self.buff.put(packet)
-			self.waiting.task_done()
+		# expected ack didn't arrive... send window again!		
+		self.movePackets()
 		
 		# TCP RENO
-		if slowStart:
-			self.cwnd = self.startCwnd
-			self.ssthresh = 0 # slow-start
-			self.updateWindow()
+		self.cwnd = self.startCwnd
+		self.ssthresh = 0 # slow-start
+		self.updateWindow()
 
 		self.lock.release()
 
 		if not self.end:
 			self.playTimer()
+
+	# ALWAYS call this function UNDER LOCK!!!
+	def movePackets(self):
+		while not self.waiting.empty():
+			packet = self.waiting.get()
+			if packet.seg >= self.ack: # no need to resend acked packets...
+				self.buff.put(packet)
+			self.waiting.task_done()
 
 	# TCP RENO
 	def increaseWindow(self):
@@ -131,7 +133,8 @@ class RSock:
 		# fast retransmit
 		if self.timer != None:
 			self.timer.cancel() # stop current timer
-		self.timeout(False) # do window retransmition
+
+		self.movePackets()
 
 		self.cwnd /= 2
 		self.ssthresh = self.cwnd
@@ -146,14 +149,9 @@ class RSock:
 				tmp.put(packet)
 			self.waiting.task_done()
 
-		while not self.waiting.empty(): # add remaining packets to buff
-			packet = self.waiting.get()
-			if packet.seg >= self.ack: # no need to resend acked packets...
-				self.buff.put(packet)
-			self.waiting.task_done()
+		self.movePackets()
 
 		self.waiting = tmp # this is required for it's not possible to change the Queue's maxsize :(
-
 
 	def enqueuePacket(self, data):
 		packet = Packet(data)
