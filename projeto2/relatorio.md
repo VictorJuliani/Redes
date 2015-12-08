@@ -1,4 +1,4 @@
-# Projeto 2 - Redes dec Computadores 2015/2
+# Projeto 2 - Redes de Computadores 2015/2
 
 * Victor Juliani - 551929
 * Leonardo Lopes - 552003
@@ -135,7 +135,7 @@ def fileRequest(packet, sock):
 ```
 
 #### O cliente
-O servidor executa uma única *thread* para o recebimento de pacotes. Ao receber uma entrada, passa a mesma para seu *reliable_sock*, para que seja processada. Caso o pacote recebido seja válido, o *sock* o retornará, caso contrário, retornará **None**. Com o pacote processado, o cliente agora verifica se o mesmo é um pacote de erro, fim da transmissão ou de dados. No primeiro caso, o arquivo requerido não foi encontrado, portanto, requere um novo nome ao usuário e o faz o pedido pedido ao servidor. No segundo caso, o arquivo foi totalmente transferido, assim, o cliente junta todos os blocos recebidos, imprime o resultado na tela e também gera um arquivo com o mesmo. Por fim, o pacote é apenas uma fração do arquivo, então é somada aos blocos recebidos e a *thread* aguarda um novo pacote.
+O servidor executa uma única *thread* para o recebimento de pacotes. Ao receber uma entrada, passa a mesma para seu *reliable_sock*, para que seja processada. Caso o pacote recebido seja válido, o *sock* o retornará. Caso contrário, retornará **None**. Com o pacote processado, o cliente agora verifica se o mesmo é um pacote de erro, fim da transmissão ou de dados. No primeiro caso, o arquivo requerido não foi encontrado, portanto, requere um novo nome ao usuário e o faz o pedido ao servidor. No segundo caso, o arquivo foi totalmente transferido, assim, o cliente junta todos os blocos recebidos, imprime o resultado na tela e também gera um arquivo com os dados. Por fim, o pacote é apenas uma fração do arquivo, então é somado aos blocos recebidos e a *thread* aguarda um novo pacote.
 (*client:45-71*).
 
 ``` python
@@ -184,13 +184,13 @@ def __init__ (self, data, seg = 0, ack = 0, end = 0, err = 0, con = 0):
 ```
 
 #### O socket confiável
-O *reliable_sock* é implementado de forma genérica, de modo que seja usado tanto pelo cliente quanto pelo servidor. Dessa forma, uma comunicação bidirecional pode acontecer entre eles e apenas as particularidades de um cliente e um servidor precisam ser implementadas à parte, ou seja, não há necessidade de repetir a lógica do *socket* entre ambos.
+O *reliable_sock* é implementado de forma genérica, de modo que seja usado tanto pelo cliente quanto pelo servidor. Assim, uma comunicação bidirecional pode acontecer entre eles e apenas as particularidades de um cliente e um servidor precisam ser implementadas à parte, ou seja, não há necessidade de repetir a lógica do *socket* entre ambos.
 
 O *sock* é composto por alguns estados: *init(ialized)*, end e requesting.
 
 O *init* controla se o socket está inicializado e, caso não esteja, um pacote com o cabeçalho *con* é enviado.
 O *end* controla se o socket está finalizado e, caso seja, interrompe a *thread* de envio de pacotes.
-O *requesting* indica se o socket requisitou ou foi requisitado pela conexão. Serve para indicar se ao receber um pacote de *con*, deve interpretá-lo como *ACK* ou responder com um *ACK*.
+O *requesting* indica se o socket requisitou ou foi requisitado pela conexão. Serve para indicar se ao receber um pacote de *con* deve interpretá-lo como *ACK* ou responder com um *ACK*.
 (*reliable_sock:15-17*).
 ``` python
 self.init = False
@@ -215,7 +215,7 @@ Essa ordem é obtida pois os *ACKs* possuem *segnum*=0 e pacotes enviados segura
 		self.waiting = PQueue(cwnd) # packets wating for ACK
 ```
 
-A execução do *sock* é regulada por 2 *threads*. A primeira é um *loop* responsável por enviar os pacotes da fila (até que o fim da janela seja atingido) e a segunda representa um *timer* para acusar *timeouts* nos pacotes enviados e forçar seu reenvio.
+A execução do *sock* é regulada por 2 *threads*. A primeira é um *loop* responsável por enviar os pacotes da fila (até que o fim da janela seja atingido) e a segunda representa um *timer* para acusar *timeouts* nos pacotes enviados e forçar o reenvio.
 
 O *timer* está sempre em execução até que a flag *end* seja habilitada. Uma vez que um *timeout* é chamado, os pacotes da *queue waiting* são movidos para a *queue buff* para reenvio e o *timer* é reiniciado. Há de se ressaltar que pacotes cujo *segnum* é inferior ao *ACK* esperado são descartados, pois a janela já foi movimentada, ou seja, o *ACK* para os mesmos já foi recebido. Um *lock* é necessário nesse passo para que a *thread* de envio aguarde essa transferência entre filas, caso contrário, os pacotes transferidos para a *queue buff* possivelmente serão inseridos de novo na *queue waiting*, causando um loop infinito de transferência entre as *queues*.
 (*reliable_sock:80-102*).
@@ -246,7 +246,7 @@ O *timer* está sempre em execução até que a flag *end* seja habilitada. Uma 
 ```
 A *thread* de envio, por sua vez, é executada quando o cliente ou servidor chamam o método *start* no *sock*. Esse método executa um *loop* até que a flag *end* seja ativada. Primeiro, um pacote é retirado da *queue buff* para que seja enviado, mas caso não haja pacote disponível, a execução é bloqueada pela própria *queue* até que haja algum pacote. Em seguida, o *timer* é disparado caso ainda não esteja em execução.
 
-Apenas pacotes de dados devem ser reenviados, então há uma verificação do pacote e, caso possa requerer reenvio, a *thread* bloqueia o *lock* e desbloqueia logo em seguida para então adicionar o pacote na *queue waiting*. O passo de bloqueio-desbloqueio é essencial para que caso o procedimento de *timeout* esteja em execução, a *thread* de envio aguarde a transferência entre *queues*. A janela de envio é controlada pela *queue waiting*, pois a mesma é inicializada com um tamanho máximo e, quando o mesmo é atingido, a *queue* bloqueia a *thread* até que os pacotes sejam retirados da fila (pelo *timeout* ou por *ACKs*). Dessa forma, *ACKs* não ficam sujeitos à janela e nem causam seu bloqueio.
+Apenas pacotes de dados devem ser reenviados, então há uma verificação do tipo do pacote e, se o mesmo for de dados, a *thread* bloqueia o *lock* e desbloqueia logo em seguida para então adicionar o pacote na *queue waiting*. O passo de bloqueio-desbloqueio é essencial para que caso o procedimento de *timeout* esteja em execução, a *thread* de envio aguarde a transferência entre *queues*. A janela de envio é controlada pela *queue waiting*, pois a mesma é inicializada com um tamanho máximo e quando o mesmo é atingido, a *queue* bloqueia a *thread* até que os pacotes sejam retirados da fila (pelo *timeout* ou por *ACKs*). Dessa forma, *ACKs* não ficam sujeitos à janela e nem causam seu bloqueio.
 
 Enfim, a *thread* faz o envio efetivo do pacote, mas não sem antes considerar uma possível simulação de falha no envio. Caso decida simular uma falha, o envio não acontece.
 
@@ -283,16 +283,16 @@ Finalmente, a *thread* verifica se o pacote enviado é do tipo *end* e *ack*, ou
 				self.endCon()
 ```
 
-O recebimento de pacotes é controlado pela *thread* do servidor, não estando sujeita ao bloqueio de envio. A primeira tarefa executada é a verificação do *checksum* ou simulação de um pacote corrompido.
+O recebimento de pacotes é controlado pela *thread* do servidor/cliente, não estando sujeita ao bloqueio de envio. A primeira tarefa executada é a verificação do *checksum* ou simulação de um pacote corrompido.
 
 Se o pacote é (considerado) válido, então há a diferenciação do tratamento de acordo com seu cabeçalho:
 1. Um pacote com o cabeçalho *con* marca o *sock* como inicializado e, caso o *sock* não seja aquele que requisitou a conexão, um *ACK* é enviado.
-2. Um pacote com o cabeçalho *ack* bloqueia o *lock* para evitar discarte indevido de pacotes no *timeout* e, caso seja o *ACK* esperado, move a janela e reinicia o *timer*. Se a flag *end* do pacote estiver habilitada, então a flag *end* do *sock* também é, pois o pacote simboliza a confirmação do pacote de término.
+2. Um pacote com o cabeçalho *ack* bloqueia o *lock* para evitar o descarte indevido de pacotes no *timeout* e, caso seja o *ACK* esperado, move a janela e reinicia o *timer*. Se a flag *end* do pacote estiver habilitada, então a flag *end* do *sock* também é, pois o pacote simboliza a confirmação do pacote de término.
 3. Um pacote com o *segnum* inferior ao *segnum* esperado significa que o outro lado do *sock* não recebeu o *ACK* do pacote em questão e portanto o reenviou. Assim o pacote recebido é ignorado e o *ACK* é reenviado.
-4. Um pacote com *segnum* igual ao *segnum* esperado causa um incremento no *segnum* esperado, pois o pacote é aquele que deve ser recebido e o envio do *ACK* do pacote.
+4. Um pacote com *segnum* igual ao *segnum* esperado causa um incremento no *segnum* esperado, pois o pacote é aquele que deve ser recebido. Além do incremento, realiza o envio do *ACK* do pacote.
 5. Os demais pacotes são ignorados, por exemplo, pacotes cujo *segnum* é maior do que o esperado, ou seja, chegaram fora de ordem.
 
-Finalmente, o pacote (ou None) é retornado para a *thread* que chamou a função: o servidor ou o cliente.
+Finalmente, o pacote (ou **None**) é retornado para a *thread* que chamou a função: o servidor ou o cliente.
 (*reliable_sock:128-1708*).
 ``` python
 	def receivePacket(self, data):
@@ -392,6 +392,8 @@ Finalmente, o pacote (ou None) é retornado para a *thread* que chamou a funçã
 ### Dificuldades encontradas
 
 A primeira dificuldade foi perceber que a melhor forma de projetar a confiabilidade seria através de um modelo genérico (*reliable_sock*) para o servidor e para o cliente. Implementamos no início toda a lógica de controle nos scripts de server e cliente. Isso foi solucionado criando o *reliable_sock* para a comunicação.
-A segunda dificuldade foi projetar o bloqueio da *thread* de envio. Havia a dúvida entre o uso de um *deque* (fila não bloqueante) e a *Queue*. Depois de algumas inversões entre elas, foi optado pelo uso da *Queue* por nao necessitar de *locks* adicionais no momento em que foi possível executar a conexão, transferência de dados e *ACKs* e finalização da conexão coom sucesso sem o uso de um *timeout* ou de falhas de envio ou corrupção.
-Finalmente, mas não menos trabalhoso (pelo contrário!) a implementação das falhas e do *timeout* levantou uma série de falhas no *sock*, especialmente no que se refere ao bloqueio das execuções das *threads* para evitar loops infinitos ou *deadlocks*. Através de *debugs* para identificar onde os *deadlocks* e inconsistências aconteciam , o script foi ajustado gradualmente até que chegasse ao ponto atual: funcionando! O *sock* do emissor nunca fica enviando pacotes para um cliente já desconectado e ambos os *socks* não ficam travados em nenhum ponto da execução. Um *timeout* curto foi usado para acelerar os testes.
+
+A segunda dificuldade foi projetar o bloqueio da *thread* de envio. Havia a dúvida entre o uso de um *deque* (fila não bloqueante) e a *Queue*. Depois de algumas inversões entre elas, foi optado pelo uso da *Queue* por não necessitar de *locks* adicionais no momento em que foi possível executar a conexão, transferência de dados e *ACKs* e finalização da conexão coom sucesso sem o uso de um *timeout* ou de falhas de envio ou corrupção.
+
+Finalmente, mas não menos trabalhoso (pelo contrário!) a implementação das falhas e do *timeout* levantou uma série de falhas no *sock*, especialmente no que se refere ao bloqueio das execuções das *threads* causando loops infinitos ou *deadlocks*. Através de *debugs* para identificar onde os *deadlocks* e inconsistências aconteciam, o script foi ajustado gradualmente até que chegasse ao ponto atual: funcionando! O *sock* nunca fica enviando pacotes para um *sock* já desconectado e ambos os *socks* não ficam travados em nenhum ponto da execução. Um *timeout* curto foi usado para acelerar os testes.
 
