@@ -24,6 +24,9 @@ class RSock:
 		if self.cwnd <= 0:
 			self.cwnd = WINDOW_SIZE
 
+		self.dupAck = 0
+		self.ssthresh = 0
+
 		self.attempt = 0
 		self.timer = None
 
@@ -48,6 +51,10 @@ class RSock:
 				self.playTimer()	
 			# only regular packets should be recent. 
 			# acks require the other side of the socket to be sent again, so we don't need to put on waiting queue
+
+			if packet.seg < self.ack: # don't send acked packets again...
+				self.buff.task_done()
+				continue
 
 			if packet.ack == 0 and (self.requesting or packet.con == 0):
 				self.lock.acquire(True) # wait for timeout function if needed
@@ -87,6 +94,7 @@ class RSock:
 	def timeout(self):
 		if not self.end and not self.waiting.empty():
 			print "Timed out! Enqueuing window again..."
+		
 		self.lock.acquire(True) # block other thread
 		self.attempt += 1 # should this avoid dced socket to be maintained
 
@@ -97,7 +105,9 @@ class RSock:
 			if packet.seg >= self.ack: # no need to resend acked packets...
 				self.buff.put(packet)
 			self.waiting.task_done()
+		
 		self.lock.release()
+
 		if not self.end:
 			self.playTimer()
 
@@ -122,8 +132,8 @@ class RSock:
 		self.seg += 1
 		self.buff.put(packet)
 		
-	def ackPacket(self, ack, endAck):
-		self.buff.put(Packet('', 0, ack, endAck))
+	def ackPacket(self, endAck):
+		self.buff.put(Packet('', 0, self.nextSeg, endAck))
 	
 	def receivePacket(self, data):
 		packet = Packet(data)
@@ -141,7 +151,7 @@ class RSock:
 			self.init = True
 			if not self.requesting: # this socket received the connection request, then ack it
 				print "Connection request from " + str(self.addr)
-				self.buff.put(Packet('', end = packet.end, con = self.nextSeg)) # ack with nextSeg expected on con field
+				self.buff.put(Packet('', con = self.nextSeg)) # ack with nextSeg expected on con field
 				return packet
 			else:
 				print "Connection established!"
@@ -157,14 +167,14 @@ class RSock:
 					self.endCon()
 			self.lock.release()
 		elif packet.seg < self.nextSeg:
-			self.ackPacket(packet.seg, packet.end) # old packet received again, ACK might be lost.. send it again
+			self.ackPacket(packet.end) # old packet received again, ACK might be lost.. send it again
 			print "Duplicated packet " + str(packet.seg) + ". Sending ack again and ignoring"
+		else packet.seg > self.nextSeg:
+			self.ackPacket(packet.end) # old packet received again, ACK might be lost.. send it again
 		elif self.nextSeg == packet.seg: # expected seg!
 			self.nextSeg += 1
-			self.ackPacket(packet.seg, packet.end)
+			self.ackPacket(packet.end)
 			print "Acking packet " + str(packet.seg)
 			return packet
-		#else:
-		#	print "Bad packet received! Seg: " + str(packet.seg) + " expected: " + str(self.nextSeg) + " ack: " + str(packet.ack)
 		
 		return None
