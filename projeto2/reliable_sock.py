@@ -8,7 +8,7 @@ import binascii, random, threading
 
 WINDOW_SIZE = 10 # packets
 ACK_TIMEOUT = 1 # seconds
-ATTEMPT = 5 # how many times should we try ending con until force closing?
+ATTEMPT = 10 # how many times should we try ending con until force closing?
 
 class RSock:
 	def __init__ (self, sock, addr, cwnd, ploss, pcorr):
@@ -53,7 +53,7 @@ class RSock:
 			# only regular packets should be recent. 
 			# acks require the other side of the socket to be sent again, so we don't need to put on waiting queue
 
-			if packet.seg < self.ack: # don't send acked packets again...
+			if packet.seg > 0 and packet.seg < self.ack: # don't send acked packets again...
 				self.buff.task_done()
 				continue
 
@@ -133,7 +133,7 @@ class RSock:
 		self.seg += 1
 		self.buff.put(packet)
 		
-	def ackPacket(self, endAck):
+	def ackPacket(self, endAck = 0):
 		self.buff.put(Packet('', 0, self.nextSeg, endAck))
 	
 	def receivePacket(self, data):
@@ -156,13 +156,16 @@ class RSock:
 				return packet
 			else:
 				print "Connection established!"
+		elif not self.init:
+			return None
 		elif (packet.ack > 0): # ack packet
 			self.lock.acquire(True)
 
-			if packet.ack >= self.ack:
+			if packet.ack > self.ack:
 				self.dupAck = 0 # reset dup ack counting
 				self.lastBadAck = 0
 				self.ack += (packet.ack - self.ack)
+
 				self.playTimer() # ack received, start timer again
 		 		print "Received expected ack " + str(packet.ack) + " on connection " + str(self.addr)
 
@@ -180,10 +183,10 @@ class RSock:
 
 			self.lock.release()
 		elif packet.seg < self.nextSeg:
-			self.ackPacket(packet.end) # old packet received again, ACK might be lost.. send it again
+			self.ackPacket() # old packet received again, ACK might be lost.. send it again
 			print "Duplicated packet " + str(packet.seg) + ". Sending ack again and ignoring"
 		elif packet.seg > self.nextSeg:
-			self.ackPacket(packet.end)
+			self.ackPacket()
 		elif self.nextSeg == packet.seg: # expected seg!
 			self.nextSeg += 1
 			self.ackPacket(packet.end)

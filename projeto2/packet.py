@@ -24,7 +24,12 @@ class Packet:
 	def __cmp__(self, other):
 		if other == None:
 			return -1
-		return cmp(self.seg, other.seg)
+		prio = cmp(self.seg, other.seg)
+
+		if prio == 0: # acks
+			prio = cmp(self.ack, other.ack)
+
+		return prio
 				
 	# build packet string
 	def wrap(self):
